@@ -1,4 +1,4 @@
-from .pipeline import Pipeline
+from .singleton_pipeline import Pipeline
 from .processes import PipelineProcessBase
 from .processes import *
 

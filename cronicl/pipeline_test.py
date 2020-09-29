@@ -47,7 +47,8 @@ def read_lines(file):
         line = file.readline()
 
         tokens = tokens + 1
-        if tokens == 100000:
+        if tokens == 150000:
+            print(tokens)
             return
     print(tokens)
     return
@@ -58,6 +59,8 @@ twitter_schema = {
     "username" : "string"
 }
 
+def gen(value):
+    yield value
 
 if __name__ == '__main__':
 
@@ -68,20 +71,24 @@ if __name__ == '__main__':
             pipeline = Pipeline()
 
             pipeline.add_process(string_to_json())
+            #pipeline.add_process(double())
             pipeline.add_process(validate(twitter_schema))
             #pipeline.add_process(print_record())
             pipeline.add_process(extract_followers())    
             pipeline.add_process(who_has_the_most())
             pipeline.add_process(json_to_string())
             #pipeline.add_process(save_to_file('temp.jsonl'))
-            pipeline.add_process(double())
+            #pipeline.add_process(double())
             #pipeline.add_process(print_record())
 
-            results = pipeline.load(read_lines(file))
+#            results = pipeline.load(read_lines(file))
+            results = pipeline.run(read_lines(file))
+
+            #results = map(pipeline.run, read_lines(file))
+
 
             for i in results:
                 pass
-                #print(i)
 
 
             pipeline.sensors()

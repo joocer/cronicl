@@ -1,4 +1,5 @@
 import logging
+import time
 
 class Pipeline(object):
 
@@ -6,7 +7,7 @@ class Pipeline(object):
         self.tasks = []
 
 
-    def _wrapper(self, func, values):
+    def _load_wrapper(self, func, values):
         """
         Handles the execution of each step in the process. Most
         of the complexity relates to handling of multiple outputs
@@ -14,6 +15,7 @@ class Pipeline(object):
 
         Should not be called directly.
         """
+        logging.info('\'load\' is linear and doesn\'t scale well, this probably isn\'t what you want.')
         if values == None:
             return
         if type(values).__name__ in ['generator']:
@@ -28,11 +30,29 @@ class Pipeline(object):
         """
         Execute the pipeline.
 
-        This executes the entire pipeline for a record at a time.
+        This executes the entire pipeline for a step at a time.
+        This starts to cause problems on very large datasets.
         """
         for task in self.tasks:
-            values = self._wrapper(task.execute, values)
+            values = self._load_wrapper(task.execute, values)
         yield from values
+
+
+    def _run_wrapper(self, value):
+        values = [value]
+        for task in self.tasks:
+            start_ns = time.time_ns()
+            next_set = []
+            for value in values:
+                res = task.execute(value)
+                next_set = next_set + list(res)
+            values = next_set
+            task.execution_time += time.time_ns() - start_ns
+        yield from values
+
+    def run(self, values):
+        for value in values:
+            yield from self._run_wrapper(value)
 
 
     def add_process(self, task):

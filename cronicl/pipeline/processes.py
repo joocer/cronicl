@@ -40,7 +40,7 @@ class PipelineProcessBase(abc.ABC):
                         self.parent = args[0]
                         self.parent.first_seen = time.time()
                    
-                   # this is the execution payload
+                    # this is the execution payload
                     return_values = function(*args)
 
                     for return_value in return_values:
@@ -50,15 +50,13 @@ class PipelineProcessBase(abc.ABC):
                     logging.error('an exception occurred which needs a better error message')
                     return
 
-                self.parent.last_seen = time.time()
-
             return inner_func
 
 
     def __init__(self, identifier=None):
         self.record_count = 0
         self.first_seen = 0
-        self.last_seen = 0
+        self.execution_time = 0
     
     def init(self):
         pass
@@ -74,9 +72,8 @@ class PipelineProcessBase(abc.ABC):
         return { 
             'process': self.__class__.__name__,
             'records': self.record_count,
-            'first_execution': self.first_seen,
-            'last_execution': self.last_seen,
-            'duration': self.last_seen - self.first_seen
+            'execution_start': self.first_seen,
+            'execution_time': self.execution_time / 1e9
         }
 
 

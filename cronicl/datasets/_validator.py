@@ -1,4 +1,3 @@
-
 """
 
 Basic Validator
@@ -40,26 +39,20 @@ class Validator(object):
             'string'    : self._validate_string,
             'numeric'   : self._validate_numeric,
             'date'      : self._validate_date,
-            'other'     : self.always_true
+            'other'     : self._null_validator
         }
+        self.validation_rules = { key: self._validators.get(rule, self._null_validator) for key, rule in schema.items() }
 
 
     def test(self, subject):
-        results = [ self._field_validator(key, value) for key, value in subject.items() ]
-        return all(results)
+        return all( [ rule(subject.get(key)) for key, rule in self.validation_rules.items() ] )
 
 
     def __call__(self, subject):
+        """
+        Alias of .test()
+        """
         return self.test(subject)
-
-
-    def _field_validator(self, key, value):
-        """
-        validator factory
-        """
-        rule = self.schema.get(key, 'other')
-        validator = self._validators.get(rule, self._null_validator)
-        return validator(value)
 
 
     def _validate_string(self, value):
@@ -85,23 +78,4 @@ class Validator(object):
 
 
     def _null_validator(self, type):
-        #print('null_validator({})'.format(type))
-        warnings.warn('unknown field type: >>{}<<'.format(type))
         return True
-
-
-    def always_true(self, x):
-        return True
-
-
-def _test():
-    val = Validator({ 
-        "name"   : "string",
-        "age"    : "numeric",
-        "height" : "numeric",
-        "dob"    : "date",
-        "title"  : "other"
-        })
-    print (val.test({ "name": "john", "age": "5", "dob": "2000-01-02", "height": 1.2, "title": "master", "spirit_animal": "penguin" }))
-
-_test()
