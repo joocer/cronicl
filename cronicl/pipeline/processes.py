@@ -5,6 +5,9 @@ except ImportError:
 import logging
 import abc
 import time
+import os, sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+from datasets import Validator
 
 
 class PipelineProcessBase(abc.ABC):
@@ -62,7 +65,7 @@ class PipelineProcessBase(abc.ABC):
 
     @abc.abstractmethod
     def execute(self, record):
-        raise Exception('The base implementation of \'run\' has to be overridden')
+        pass
 
     def close(self):
         pass
@@ -95,6 +98,31 @@ class json_to_string(PipelineProcessBase):
         yield json.dumps(record)
 
 
+class validate(PipelineProcessBase):
+    """
+    Validate against a schema.
+    """
+    def __init__(self, schema):
+        self.validator = Validator(schema)
+        self.invalid_records = 0
+        PipelineProcessBase.__init__(self)
+
+
+    @PipelineProcessBase.Sensor()
+    def execute(self, record):
+        valid = self.validator(record)
+        if not valid:
+            self.invalid_records += 1
+        else:
+            yield record
+
+
+    def read_sensor(self):
+        readings = PipelineProcessBase.read_sensor(self)
+        readings['invalid_records'] = self.invalid_records
+        return readings
+
+
 class save_to_file(PipelineProcessBase):
     """
     Write records to a file.
@@ -104,7 +132,7 @@ class save_to_file(PipelineProcessBase):
         self.file = open(filename, 'w', encoding='utf-8')
         # if we're defining an '__init__', we need to call the base
         # class' __init__ method
-        PipelineProcessBase.__init__(PipelineProcessBase)
+        PipelineProcessBase.__init__(self)
 
     @PipelineProcessBase.Sensor()
     def execute(self, record):

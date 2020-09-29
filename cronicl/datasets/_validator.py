@@ -30,16 +30,6 @@ import warnings
 import datetime
 
 
-def validate(dataset, validator):
-    for row in dataset:
-        validator.test(row)
-
-
-def pass_through_validator(dataset, validator):
-    for row in dataset:
-        validator.test(row)
-        yield row
-        
 
 class Validator(object):
 
@@ -50,36 +40,33 @@ class Validator(object):
             'string'    : self._validate_string,
             'numeric'   : self._validate_numeric,
             'date'      : self._validate_date,
-            'other'     : lambda x: True 
+            'other'     : self.always_true
         }
 
 
-    def test(self, dictionary):
-        results = [ self._field_validator(key, value) for key, value in dictionary.items() ]
+    def test(self, subject):
+        results = [ self._field_validator(key, value) for key, value in subject.items() ]
         return all(results)
-        
+
+
+    def __call__(self, subject):
+        return self.test(subject)
+
 
     def _field_validator(self, key, value):
         """
         validator factory
         """
         rule = self.schema.get(key, 'other')
-        splitted = rule.split(' ')
-        validator = self._validators.get(splitted[0], lambda x: self._null_validator(x))
-
-        return validator (value)
+        validator = self._validators.get(rule, self._null_validator)
+        return validator(value)
 
 
     def _validate_string(self, value):
-        #('validate_string({})'.format(value))
-        try:
-            return str(value) == value
-        except:
-            return False
+        return type(value).__name__ == 'str'
 
 
     def _validate_numeric(self, value):
-        #print('validate_numeric({})'.format(value))
         try:
             test = float(value)
             return True
@@ -88,9 +75,8 @@ class Validator(object):
 
 
     def _validate_date(self, value):
-        #print('validate_date({})'.format(value))
         try:
-            if type(value).__name__ in ['datetime', 'date']:
+            if type(value).__name__ in ['datetime', 'date', 'time']:
                 return True
             test = datetime.datetime.fromisoformat(value)
             return True
@@ -104,8 +90,12 @@ class Validator(object):
         return True
 
 
+    def always_true(self, x):
+        return True
+
+
 def _test():
-    val = validator({ 
+    val = Validator({ 
         "name"   : "string",
         "age"    : "numeric",
         "height" : "numeric",

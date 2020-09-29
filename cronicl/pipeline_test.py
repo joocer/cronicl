@@ -53,6 +53,11 @@ def read_lines(file):
     return
 
 
+twitter_schema = {
+    "followers": "numeric",
+    "username" : "string"
+}
+
 
 if __name__ == '__main__':
 
@@ -63,6 +68,8 @@ if __name__ == '__main__':
             pipeline = Pipeline()
 
             pipeline.add_process(string_to_json())
+            pipeline.add_process(validate(twitter_schema))
+            #pipeline.add_process(print_record())
             pipeline.add_process(extract_followers())    
             pipeline.add_process(who_has_the_most())
             pipeline.add_process(json_to_string())
