@@ -1,4 +1,4 @@
-import time
+import time, logging
 import networkx as nx
 from .stages import PassThruStage
 
@@ -12,59 +12,70 @@ def empty(x):
 
 class Pipeline(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, graph):
+        self.graph = graph
+        self.all_stages = [ node for node in self.graph.nodes() ]
+        # validate the graph
+        # - can't be cyclic
+        # - can't have orphans
+        # - each node has a function attribute
+        # - the object on the function attribute as an execute method
 
-    def execute(self, graph, source, **kwargs):
+        logging.debug('loaded a pipeline with {} stages'.format(len(self.all_stages)))
+
+    def execute(self, record, **kwargs):
         """
         """
-        # get references to all of the stages
-        all_stages = [ node for node in graph.nodes() ]
 
         # call all the inits, pass the kwargs
-        for stage in all_stages:
-            stage_function = graph.nodes()[stage].get('function', PassThruStage())
+        for stage in self.all_stages:
+            stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
             if hasattr(stage_function, 'init'):
                 stage_function.init(**kwargs)
 
         # get all the nodes with no incoming edges
-        pumps = [ node for node in all_stages if len(graph.in_edges(node)) == 0 ]
+        pumps = [ node for node in self.all_stages if len(self.graph.in_edges(node)) == 0 ]
         for pump in pumps:
+            logging.debug('running pump \'{}\', for record: {}'.format(pump, record))
             # run the state and force the expansion of the results to
             # run the pipeline, the sinks should persist the results
             # so we should be able to discard the final results.
-            [ always(x) for x in (self._inner_execute(graph, pump, source) or []) ]
+            [ always(x) for x in (self._inner_execute(pump, record) or []) ]
 
         # call all the closes
-        for stage in all_stages:
-            stage_function = graph.nodes()[stage].get('function', PassThruStage())
+        for stage in self.all_stages:
+            stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
             if hasattr(stage_function, 'close'):
                 stage_function.close()
 
 
-    def _inner_execute(self, graph, node, record):
+    def _inner_execute(self, stage_node, record):
         """
         Execute the stage, and then find out-going edges, execute any 
         filters defined on the edge and then execute the connected
         stage nodes.
         """
-        stage = graph.nodes()[node].get('function', PassThruStage())
-        outgoing_edges = graph.out_edges(node, default=[])
+        #logging.debug('Running Record: {}, Stage: {}'.format(record, stage_node))
+
+        stage = self.graph.nodes()[stage_node].get('function', PassThruStage())
+        outgoing_edges = self.graph.out_edges(stage_node, default=[])
         
-        # record amount of time to exdcute the step
-        start_ns = time.time_ns()
         # the primary payload
         results = stage(record)
-        stage.execution_time += time.time_ns() - start_ns
 
         # we don't know if we have any results, 'or []' handles 'None'
         for result in (results or []):
+
+            # None terminates the flow
+            if result == None:
+                continue
+
             # for each out-going edge
             for outgoing_edge in outgoing_edges:
                 next_stage = outgoing_edge[1]
                 # get the filter associated with the edge
-                data_filter = graph.get_edge_data(node, next_stage).get('filter', always)
+                data_filter = self.graph.get_edge_data(stage_node, next_stage).get('filter', always)
                 # if the data 'passes' the filter, execute the next stage
                 if data_filter(result):
-                    yield from self._inner_execute(graph, next_stage, result)
+                    yield from self._inner_execute(next_stage, result)
         return
