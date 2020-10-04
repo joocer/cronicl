@@ -76,5 +76,29 @@ class Pipeline(object):
                     yield from self._inner_execute(next_stage, result)
         return
 
+    # adapted from https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
+    def tree(self, node, prefix=''):
+
+        space =  '    '
+        branch = '│   '
+        tee =    '├── '
+        last =   '└── '
+
+        contents = [ node[1] for node in self.graph.out_edges(node, default=[]) ]
+        # contents each get pointers that are ├── with a final └── :
+        pointers = [tee] * (len(contents) - 1) + [last]
+        for pointer, child_node in zip(pointers, contents):
+            yield prefix + pointer + child_node
+            if len(self.graph.out_edges(node, default=[])) > 0: # extend the prefix and recurse:
+                extension = branch if pointer == tee else space 
+                # i.e. space because last, └── , above so no more |
+                yield from self.tree(child_node, prefix=prefix+extension)
+
+    def draw(self):
+        pumps = [ node for node in self.graph.nodes() if len(self.graph.in_edges(node)) == 0 ]
+        for pump in pumps:
+            t = self.tree(pump)
+            print(pump)
+            print('\n'.join(t))
 
         

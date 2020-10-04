@@ -14,8 +14,7 @@ class ScreenSink(Stage):
     """
     def execute(self, record):
         print('>>>', record)
-        #yield record
-        return None
+        yield record
 
 #####################################################################
 
@@ -34,7 +33,7 @@ class FileSink(Stage):
 
     def execute(self, record):
         self.file.write("{}\n".format(str(record).rstrip('\n|\r')))
-        return None
+        yield record
 
     def close(self):
         self.file.close()
@@ -46,4 +45,4 @@ class NullSink(Stage):
     Empty Sink
     """
     def execute(self, record):
-        pass
+        yield record

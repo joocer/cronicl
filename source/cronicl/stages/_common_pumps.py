@@ -5,7 +5,7 @@ A set of prewritten data pumps for reuse.
 
 Pumps generate data to be put through the pipeline.
 """
-
+import time
 from ._stage import Stage
 try:
     import ujson as json
@@ -54,6 +54,32 @@ class JSONLFilePump(Stage):
                 if limit == 0:
                     row = None
 
-
-
 #####################################################################
+
+class TimerPump(Stage):
+    """
+    Initiates a message at an interval.
+
+    This is not an accurate timer!
+
+    DO NOT use for anything where the time is sensitive, it's 
+    intended only to periodically intiate a flow.
+    """
+    def __init__(self, interval):
+        self.interval = float(interval)
+        Stage.__init__(self)
+
+    def execute(self, interval):
+        # send a message at the start
+        last_time = time.time()
+        yield last_time
+
+        if self.interval == None:
+            self.interval - float(interval)
+
+        while True:
+            time.sleep(0.1)
+            this_time = time.time()
+            if this_time - last_time >= self.interval:
+                yield this_time
+                last_time = this_time
