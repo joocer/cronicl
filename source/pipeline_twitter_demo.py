@@ -2,6 +2,14 @@
 Pipeline Demo - Twitter
 
 A flow with custom stages, forking, filtering and merging.
+
+JSON File Pump
+ └─ Data Validation
+     └─ Extract Followers
+         ├─ Most Followers (verified)
+         │   └─ Screen Sink
+         └─ Most Followers (unverified)
+             └─ Screen Sink <same instance as Screen Sink above>
 """
 
 import cronicl
@@ -42,12 +50,14 @@ class MostFollowersStage(cronicl.stages.Stage):
 dag = nx.DiGraph()
 
 dag.add_node('JSON File Pump', function=cronicl.stages.JSONLFilePump())
+dag.add_node('Data Validation', function=cronicl.stages.ValidatorStage({ "followers": "numeric", "username" : "string" }))
 dag.add_node('Extract Followers', function=ExtractFollowersStage())
 dag.add_node('Most Followers (verified)', function=MostFollowersStage())
 dag.add_node('Most Followers (unverified)', function=MostFollowersStage())
 dag.add_node('Screen Sink', function=cronicl.stages.ScreenSink())
 
-dag.add_edge('JSON File Pump', 'Extract Followers')
+dag.add_edge('JSON File Pump', 'Data Validation')
+dag.add_edge('Data Validation', 'Extract Followers')
 dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.get('verified') == True )
 dag.add_edge('Extract Followers', 'Most Followers (unverified)', filter=lambda x: x.get('verified') == False )
 dag.add_edge('Most Followers (verified)', 'Screen Sink')

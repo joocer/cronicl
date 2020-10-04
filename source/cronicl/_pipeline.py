@@ -80,9 +80,9 @@ class Pipeline(object):
     def tree(self, node, prefix=''):
 
         space =  '    '
-        branch = '│   '
-        tee =    '├── '
-        last =   '└── '
+        branch = ' │  '
+        tee =    ' ├─ '
+        last =   ' └─ '
 
         contents = [ node[1] for node in self.graph.out_edges(node, default=[]) ]
         # contents each get pointers that are ├── with a final └── :
