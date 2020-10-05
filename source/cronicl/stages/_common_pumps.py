@@ -7,6 +7,7 @@ Pumps generate data to be put through the pipeline.
 """
 import time
 from ._stage import Stage
+from ._messages import create_new_message
 try:
     import ujson as json
 except ImportError:
@@ -18,6 +19,13 @@ class FilePump(Stage):
     """
     Reads records from a file
     """
+    def init(self, **kwargs):
+        try:
+            self.sample_rate = float(kwargs.get('sample_rate', 0))
+        except:
+            self.sample_rate = 0.01
+
+
     def execute(self, record):
         """
         Note that this will be instantiated once and read the
@@ -26,7 +34,7 @@ class FilePump(Stage):
         with open(record, 'r', encoding='utf-8') as file:
             row = file.readline()
             while row:
-                yield row
+                yield create_new_message(row, sample_rate=self.sample_rate)
                 row = file.readline()
 
 #####################################################################
@@ -43,11 +51,11 @@ class JSONLFilePump(Stage):
 
         limit = -1
 
-        with open(record, 'r', encoding='utf-8') as file:
+        with open(record.payload, 'r', encoding='utf-8') as file:
             row = file.readline()
             while row:
 
-                yield json.loads(row)
+                yield create_new_message(json.loads(row))
                 row = file.readline()
 
                 limit -= 1
@@ -72,7 +80,7 @@ class TimerPump(Stage):
     def execute(self, interval):
         # send a message at the start
         last_time = time.time()
-        yield last_time
+        yield create_new_message(last_time)
 
         if self.interval == None:
             self.interval - float(interval)
@@ -81,5 +89,5 @@ class TimerPump(Stage):
             time.sleep(0.1)
             this_time = time.time()
             if this_time - last_time >= self.interval:
-                yield this_time
+                yield create_new_message(this_time)
                 last_time = this_time

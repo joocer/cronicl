@@ -1,4 +1,4 @@
-import time, abc, logging
+import time, abc, logging, uuid
 
 class Stage(abc.ABC):
 
@@ -12,7 +12,7 @@ class Stage(abc.ABC):
     def init(self, **kwargs):
         pass
 
-    def __call__(self, record):
+    def __call__(self, message):
         """
         Alias for execute.
         
@@ -23,15 +23,25 @@ class Stage(abc.ABC):
             self.first_seen = time.time()
             logging.debug('first run of: {}'.format(self.__class__.__name__))
         self.input_record_count += 1
+
+        traced = message.traced
         start_ns = time.time_ns()
 
         # the main processing payload
-        results = self.execute(record)
+        results = self.execute(message)
 
         self.execution_time += time.time_ns() - start_ns
+
+        spawned = []
+
         for result in results or []:
+            spawned.append(result.id)
+            result.traced = traced
             self.output_record_count += 1
             yield result
+
+        if traced:
+            logging.debug ({ "id": message.id, "stage": self.__class__.__name__, "time": time.time(), "spawned": spawned })
 
     @abc.abstractmethod
     def execute(self, record):

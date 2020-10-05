@@ -13,6 +13,7 @@ JSON File Pump
 """
 
 import cronicl
+from cronicl.stages import create_new_message 
 import logging, sys
 import networkx as nx
 
@@ -20,17 +21,19 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format="%(created)f 
 
 class ExtractFollowersStage(cronicl.stages.Stage):
 
-    def execute(self, record):
+    def execute(self, message):
+        payload = message.payload
         try:
-            followers = int(record.get('followers', -1))
-            verified = record.get('user_verified', 'False') == 'True'
+            followers = int(payload.get('followers', -1))
+            verified = payload.get('user_verified', 'False') == 'True'
             result = { 
                 "followers": followers, 
-                "user": record.get('username', ''), 
+                "user": payload.get('username', ''), 
                 "verified": verified }
-            yield result
+            message.payload = result
+            yield message
         except:
-            print(record)
+            print(message)
             yield None 
 
 class MostFollowersStage(cronicl.stages.Stage):
@@ -39,33 +42,36 @@ class MostFollowersStage(cronicl.stages.Stage):
         self.user = ''
         self.followers = 0
 
-    def execute(self, record):
-        if record.get('followers') > self.followers:
-            self.followers = record.get('followers')
-            self.user = record.get('user')
-            yield record
+    def execute(self, message):
+        payload = message.payload
+        if payload.get('followers') > self.followers:
+            self.followers = payload.get('followers')
+            self.user = payload.get('user')
+            yield message
 
 
 
 dag = nx.DiGraph()
 
-dag.add_node('JSON File Pump', function=cronicl.stages.JSONLFilePump())
+#dag.add_node('JSON File Pump', function=cronicl.stages.JSONLFilePump())
 dag.add_node('Data Validation', function=cronicl.stages.ValidatorStage({ "followers": "numeric", "username" : "string" }))
 dag.add_node('Extract Followers', function=ExtractFollowersStage())
 dag.add_node('Most Followers (verified)', function=MostFollowersStage())
 dag.add_node('Most Followers (unverified)', function=MostFollowersStage())
 dag.add_node('Screen Sink', function=cronicl.stages.ScreenSink())
 
-dag.add_edge('JSON File Pump', 'Data Validation')
+#dag.add_edge('JSON File Pump', 'Data Validation')
 dag.add_edge('Data Validation', 'Extract Followers')
-dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.get('verified') == True )
-dag.add_edge('Extract Followers', 'Most Followers (unverified)', filter=lambda x: x.get('verified') == False )
+dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.payload.get('verified') == True )
+dag.add_edge('Extract Followers', 'Most Followers (unverified)', filter=lambda x: x.payload.get('verified') == False )
 dag.add_edge('Most Followers (verified)', 'Screen Sink')
 dag.add_edge('Most Followers (unverified)', 'Screen Sink')
 
-flow = cronicl.Pipeline(dag)
+flow = cronicl.Pipeline(dag, sample_rate=0.001)
+flow.init()
 flow.draw()
-flow.execute('small.jsonl')
+flow.execute(cronicl.datasets.io.read_jsonl('small.jsonl'))
+flow.close()
 
 for node in dag.nodes():
     try:

@@ -1,6 +1,7 @@
 import time, logging, warnings
 import networkx as nx
-from .stages import PassThruStage
+from .stages import PassThruStage, create_new_message
+import uuid
 
 
 def always_pass(x):
@@ -9,17 +10,19 @@ def always_pass(x):
 
 class Pipeline(object):
 
-    def __init__(self, graph):
+    def __init__(self, graph, sample_rate=0.01):
         self.graph = graph
         self.all_stages = self.graph.nodes()
+        self.initialized = False
+
+        # tracing can be resource heavy, so we trace a sample
+        # default sampling rateis 1%
+        self.sample_rate = sample_rate 
+
+        # get the nodes with 0 incoming nodes
+        self.entry_nodes = [ node for node in self.all_stages if len(graph.in_edges(node)) == 0 ]
 
         # VALIDATE THE GRAPH
-        # must have exactly one pump
-        pump = [ node for node in self.all_stages if len(graph.in_edges(node)) == 0 ]
-        if len(pump) != 1:
-            raise Exception("Pipelines must have exactly one 'pump' (nodes with no incoming edges)")
-        self.pump = pump[0]
-
         # The pipeline can't be cyclic
         try:
             nx.find_cycle(graph, orientation="original")
@@ -34,28 +37,53 @@ class Pipeline(object):
         if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_stages]):
             raise Exception("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
 
-        logging.debug('loaded a pipeline with {} stages'.format(len(self.all_stages)))
+        logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 
-    def execute(self, record, **kwargs):
-        """
-        """
+
+    def init(self, **kwargs):
         # call all the inits, pass the kwargs
         for stage in self.all_stages:
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
             if hasattr(stage_function, 'init'):
                 stage_function.init(**kwargs)
+        self.initialized = True
 
-        logging.debug('running pump \'{}\', for record: {}'.format(self.pump, record))
-        # run the state and force the expansion of the results to
-        # run the pipeline, the sinks should persist the results
-        # so we should be able to discard the final results.
-        [ always_pass(x) for x in [ x for x in (self._inner_execute(self.pump, record) or []) ] ]
 
-        # call all the closes
-        for stage in self.all_stages:
-            stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
-            if hasattr(stage_function, 'close'):
-                stage_function.close()
+    def execute(self, value):
+        """
+        """
+        if not self.initialized:
+            raise Exception("Pipeline's init method must be called before execute")
+
+        
+        if type(value).__name__ in ['generator']:
+            # we have something which creates multiple messages 
+            # (like a file reader)
+
+            # create the message envelopes and execute the pipeline 
+            # from the entry nodes 
+            for v in value:
+                message = create_new_message(v, sample_rate=self.sample_rate)
+                for entry in self.entry_nodes:
+                    [ always_pass(x) for x in [ x for x in (self._inner_execute(entry, message) or []) ] ]
+
+        else:
+            # assume we have a single value to pump through the pipeline
+
+            # create the message envelopes and execute the pipeline 
+            # from the entry nodes 
+            message = create_new_message(value, sample_rate=self.sample_rate)
+            for entry in self.entry_nodes:
+                    [ always_pass(x) for x in [ x for x in (self._inner_execute(entry, message) or []) ] ]
+
+
+    def close(self):
+        if self.initialized:
+            # call all the closes
+            for stage in self.all_stages:
+                stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
+                if hasattr(stage_function, 'close'):
+                    stage_function.close()
 
 
     def _inner_execute(self, stage_node, record):
@@ -64,6 +92,8 @@ class Pipeline(object):
         filters defined on the edge and then execute the connected
         stage nodes.
         """
+        #logging.debug('_inner_execute({}, {})'.format(stage_node, 5))
+
         stage = self.graph.nodes()[stage_node].get('function', PassThruStage())
         outgoing_edges = self.graph.out_edges(stage_node, default=[])
         
@@ -105,9 +135,11 @@ class Pipeline(object):
                 # i.e. space because last, └── , above so no more |
                 yield from self.tree(child_node, prefix=prefix+extension)
 
+
     def draw(self):
-        t = self.tree(self.pump)
-        print(self.pump)
-        print('\n'.join(t))
+        print('instantiator')
+        for entry in self.entry_nodes:
+            t = self.tree(entry)
+            print('\n'.join(t))
 
         

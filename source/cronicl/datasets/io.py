@@ -4,7 +4,11 @@ IO
 End-Points (sources and sinks) for streaming data processing.
 """
 
-import ._cronicl
+try:
+    import ujson as json
+except ImportError:
+    import json
+import csv
 
 def to_csv(dataset, filename, columns=['first_row']):
     """
@@ -40,7 +44,7 @@ def to_pandas(dataset):
     pass
 
 
-def read_jsonl(filename):
+def read_jsonl(filename, limit=-1):
     """
     """
     with open(filename, 'r') as file:
@@ -49,6 +53,9 @@ def read_jsonl(filename):
             yield json.loads(line)
             line = file.readline()
 
+            limit -= 1
+            if limit == 0:
+                return
 
 def read_csv(filename):
     pass
