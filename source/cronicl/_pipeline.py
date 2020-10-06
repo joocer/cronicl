@@ -55,26 +55,29 @@ class Pipeline(object):
         if not self.initialized:
             raise Exception("Pipeline's init method must be called before execute")
 
+        #print(value, type(value))
         
-        if type(value).__name__ in ['generator']:
+        if type(value).__name__ in ['generator', 'list']:
             # we have something which creates multiple messages 
             # (like a file reader)
-
+            #logging.debug('generator')
             # create the message envelopes and execute the pipeline 
             # from the entry nodes 
             for v in value:
                 message = create_new_message(v, sample_rate=self.sample_rate)
                 for entry in self.entry_nodes:
-                    [ always_pass(x) for x in [ x for x in (self._inner_execute(entry, message) or []) ] ]
+                    [ x for x in (self._inner_execute(entry, message)) ]
 
         else:
             # assume we have a single value to pump through the pipeline
-
+            #logging.debug('other')
             # create the message envelopes and execute the pipeline 
             # from the entry nodes 
             message = create_new_message(value, sample_rate=self.sample_rate)
             for entry in self.entry_nodes:
-                    [ always_pass(x) for x in [ x for x in (self._inner_execute(entry, message) or []) ] ]
+                    [ x for x in (self._inner_execute(entry, message)) ]
+
+        return
 
 
     def close(self):
@@ -115,7 +118,7 @@ class Pipeline(object):
                 # if the data 'passes' the filter, execute the next stage
                 if data_filter(result):
                     yield from self._inner_execute(next_stage, result)
-        yield
+        return
 
     # adapted from https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
     def tree(self, node, prefix=''):

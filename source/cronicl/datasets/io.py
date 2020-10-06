@@ -9,6 +9,7 @@ try:
 except ImportError:
     import json
 import csv
+from pathlib import Path
 
 def to_csv(dataset, filename, columns=['first_row']):
     """
@@ -44,18 +45,21 @@ def to_pandas(dataset):
     pass
 
 
-def read_jsonl(filename, limit=-1):
+def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
     """
     """
-    with open(filename, 'r') as file:
-        line = file.readline()
-        while line:
-            yield json.loads(line)
-            line = file.readline()
+    file_reader = read_file(filename, chunk_size=chunk_size, delimiter=delimiter)
+    line = next(file_reader)
+    while line:
 
-            limit -= 1
-            if limit == 0:
-                return
+        yield(json.loads(line))
+        limit -= 1
+        if limit == 0:
+            return
+        try:
+            line = next(file_reader)
+        except:
+            return
 
 def read_csv(filename):
     pass
@@ -70,14 +74,15 @@ def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
     Returns an generator of lines in the file
     """
     
-    file_size = file.size
+    file_size = Path(filename).stat().st_size
+    file = open(filename, 'r', encoding="utf8")
 
     carry_forward = ''
     cursor = 0
-    while (cursor < blob_size):
-        chunk = file_read(start=cursor, end=min(file_size, cursor+chunk_size-1))   
+    while (cursor < file_size):
+        chunk = file.read(chunk_size)   
         cursor = cursor + len(chunk)
-        chunk = chunk.decode('utf-8')
+        #chunk = chunk.decode('utf-8')
 
         # add the last line from the previous cycle
         chunk = carry_forward + chunk
@@ -93,6 +98,8 @@ def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
                 yield line
     if len(carry_forward) > 0:
         yield carry_forward
+
+    file.close()
 
 
 def read_csv_lines(filename):

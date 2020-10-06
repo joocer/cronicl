@@ -1,4 +1,8 @@
-import time, abc, logging, uuid
+import time, abc, logging
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 class Stage(abc.ABC):
 
@@ -41,7 +45,7 @@ class Stage(abc.ABC):
             yield result
 
         if traced:
-            logging.debug ({ "id": message.id, "stage": self.__class__.__name__, "time": time.time(), "spawned": spawned })
+            logging.debug ({ "id": message.id, "stage": self.__class__.__name__, "time": time.time(), "spawned": spawned, "record": json.dumps(message.payload) })
 
     @abc.abstractmethod
     def execute(self, record):
