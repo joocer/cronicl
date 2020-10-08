@@ -1,50 +1,101 @@
-import time, logging
+import time, logging, warnings
 import networkx as nx
-from .stages import PassThruStage
+from .stages import PassThruStage, create_new_message
+from .stages._trace import Trace
+import uuid
 
 
 def always_pass(x):
     return True
 
-def empty(x):
-    return []
-
 
 class Pipeline(object):
 
-    def __init__(self, graph):
+
+    def __init__(self, graph, sample_rate=0.01, trace_file='cronicl_trace'):
         self.graph = graph
         self.all_stages = self.graph.nodes()
-        # validate the graph
-        # - can't be cyclic
-        # - can't have orphans
-        # - each node has a function attribute
-        # - the object on the function attribute as an execute method
-        logging.debug('loaded a pipeline with {} stages'.format(len(self.all_stages)))
+        self.initialized = False
 
-    def execute(self, record, **kwargs):
-        """
-        """
+        # tracing can be resource heavy, so we trace a sample
+        # default sampling rateis 1%
+        self.sample_rate = sample_rate 
+        self.tracer = Trace()
+        self.tracer.open(trace_file)
+
+        # get the nodes with 0 incoming nodes
+        self.entry_nodes = [ node for node in self.all_stages if len(graph.in_edges(node)) == 0 ]
+
+        # VALIDATE THE GRAPH
+        # The pipeline can't be cyclic
+        try:
+            nx.find_cycle(graph, orientation="original")
+        except:
+            pass
+
+        # Every stage node must have a function attribute
+        if not all([graph.nodes()[node].get('function') for node in self.all_stages]):
+            raise Exception("All stages in the Pipeline must have a 'function' attribute")
+
+        # Every object on the function attribute must have an execute method
+        if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_stages]):
+            raise Exception("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
+
+        logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
+
+
+    def init(self, **kwargs):
+
         # call all the inits, pass the kwargs
         for stage in self.all_stages:
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
             if hasattr(stage_function, 'init'):
                 stage_function.init(**kwargs)
+        self.initialized = True
 
-        # get all the nodes with no incoming edges
-        pumps = [ node for node in self.all_stages if len(self.graph.in_edges(node)) == 0 ]
-        for pump in pumps:
-            logging.debug('running pump \'{}\', for record: {}'.format(pump, record))
-            # run the state and force the expansion of the results to
-            # run the pipeline, the sinks should persist the results
-            # so we should be able to discard the final results.
-            [ always_pass(x) for x in (self._inner_execute(pump, record) or []) ]
 
-        # call all the closes
-        for stage in self.all_stages:
-            stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
-            if hasattr(stage_function, 'close'):
-                stage_function.close()
+    def execute(self, value):
+        """
+        """
+        if not self.initialized:
+            raise Exception("Pipeline's init method must be called before execute")
+
+        #print(value, type(value))
+        
+        if type(value).__name__ in ['generator', 'list']:
+            # we have something which creates multiple messages 
+            # (like a file reader)
+            #logging.debug('generator')
+            # create the message envelopes and execute the pipeline 
+            # from the entry nodes 
+            for v in value:
+                message = create_new_message(v, sample_rate=self.sample_rate)
+                for entry in self.entry_nodes:
+                    [ x for x in (self._inner_execute(entry, message)) ]
+
+        else:
+            # assume we have a single value to pump through the pipeline
+            #logging.debug('other')
+            # create the message envelopes and execute the pipeline 
+            # from the entry nodes 
+            message = create_new_message(value, sample_rate=self.sample_rate)
+            for entry in self.entry_nodes:
+                    [ x for x in (self._inner_execute(entry, message)) ]
+
+        return
+
+
+    def close(self):
+
+        # close the tracer
+        self.tracer.close()
+
+        if self.initialized:
+            # call all the closes
+            for stage in self.all_stages:
+                stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
+                if hasattr(stage_function, 'close'):
+                    stage_function.close()
 
 
     def _inner_execute(self, stage_node, record):
@@ -53,6 +104,8 @@ class Pipeline(object):
         filters defined on the edge and then execute the connected
         stage nodes.
         """
+        #logging.debug('_inner_execute({}, {})'.format(stage_node, 5))
+
         stage = self.graph.nodes()[stage_node].get('function', PassThruStage())
         outgoing_edges = self.graph.out_edges(stage_node, default=[])
         
@@ -80,9 +133,9 @@ class Pipeline(object):
     def tree(self, node, prefix=''):
 
         space =  '    '
-        branch = '│   '
-        tee =    '├── '
-        last =   '└── '
+        branch = ' │  '
+        tee =    ' ├─ '
+        last =   ' └─ '
 
         contents = [ node[1] for node in self.graph.out_edges(node, default=[]) ]
         # contents each get pointers that are ├── with a final └── :
@@ -94,11 +147,12 @@ class Pipeline(object):
                 # i.e. space because last, └── , above so no more |
                 yield from self.tree(child_node, prefix=prefix+extension)
 
+
     def draw(self):
-        pumps = [ node for node in self.graph.nodes() if len(self.graph.in_edges(node)) == 0 ]
-        for pump in pumps:
-            t = self.tree(pump)
-            print(pump)
+        print('Pipeline Entry')
+        for entry in self.entry_nodes:
+            print(' └─ {}'.format(entry))
+            t = self.tree(entry, '    ')
             print('\n'.join(t))
 
         

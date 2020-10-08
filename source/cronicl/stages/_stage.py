@@ -1,4 +1,9 @@
-import time, abc, logging
+import time, abc, logging, logging.handlers
+try:
+    import ujson as json
+except ImportError:
+    import json
+from ._trace import Trace
 
 class Stage(abc.ABC):
 
@@ -12,7 +17,7 @@ class Stage(abc.ABC):
     def init(self, **kwargs):
         pass
 
-    def __call__(self, record):
+    def __call__(self, message):
         """
         Alias for execute.
         
@@ -23,15 +28,25 @@ class Stage(abc.ABC):
             self.first_seen = time.time()
             logging.debug('first run of: {}'.format(self.__class__.__name__))
         self.input_record_count += 1
+
+        traced = message.traced
         start_ns = time.time_ns()
 
         # the main processing payload
-        results = self.execute(record)
+        results = self.execute(message)
 
         self.execution_time += time.time_ns() - start_ns
+
+        has_results = False
         for result in results or []:
+            has_results = True
+            message.trace(stage=self.__class__.__name__, child=result.id)
+            result.traced = traced
             self.output_record_count += 1
             yield result
+
+        if not has_results:
+            message.trace(stage=self.__class__.__name__, child='00000000-0000-0000-0000-000000000000')
 
     @abc.abstractmethod
     def execute(self, record):
