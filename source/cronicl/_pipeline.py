@@ -10,6 +10,7 @@ def always_pass(x):
 
 class Pipeline(object):
 
+
     def __init__(self, graph, sample_rate=0.01):
         self.graph = graph
         self.all_stages = self.graph.nodes()
@@ -40,7 +41,23 @@ class Pipeline(object):
         logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 
 
+    def set_up_tracing(self):
+        import logging
+
+        trace = logging.getLogger('cronicl_trace')
+
+        trace_file = logging.handlers.TimedRotatingFileHandler('cronicl_trace', when='midnight', backupCount=7)
+        trace_formatter = logging.Formatter("%(asctime)-15s %(message)s")
+        trace_file.suffix = "%Y-%m-%d"
+        trace_file.setLevel(logging.DEBUG)
+        trace_file.setFormatter(trace_formatter)
+        trace.addHandler(trace_file)
+
+
+
     def init(self, **kwargs):
+        self.set_up_tracing()
+
         # call all the inits, pass the kwargs
         for stage in self.all_stages:
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())

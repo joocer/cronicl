@@ -1,8 +1,9 @@
-import time, abc, logging
+import time, abc, logging, logging.handlers
 try:
     import ujson as json
 except ImportError:
     import json
+from ._trace import Trace
 
 class Stage(abc.ABC):
 
@@ -36,16 +37,16 @@ class Stage(abc.ABC):
 
         self.execution_time += time.time_ns() - start_ns
 
-        spawned = []
-
+        has_results = False
         for result in results or []:
-            spawned.append(result.id)
+            has_results = True
+            message.trace(stage=self.__class__.__name__, spawned=result.id)
             result.traced = traced
             self.output_record_count += 1
             yield result
 
-        if traced:
-            logging.debug ({ "id": message.id, "stage": self.__class__.__name__, "time": time.time(), "spawned": spawned, "record": json.dumps(message.payload) })
+        if not has_results:
+            message.trace(stage=self.__class__.__name__)
 
     @abc.abstractmethod
     def execute(self, record):
