@@ -40,13 +40,13 @@ class Stage(abc.ABC):
         has_results = False
         for result in results or []:
             has_results = True
-            message.trace(stage=self.__class__.__name__, spawned=result.id)
+            message.trace(stage=self.__class__.__name__, child=result.id)
             result.traced = traced
             self.output_record_count += 1
             yield result
 
         if not has_results:
-            message.trace(stage=self.__class__.__name__)
+            message.trace(stage=self.__class__.__name__, child='00000000-0000-0000-0000-000000000000')
 
     @abc.abstractmethod
     def execute(self, record):

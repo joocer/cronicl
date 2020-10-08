@@ -22,14 +22,14 @@ class Message(object):
     def __str__(self):
         return str(self.payload)
 
-    def trace(self, stage='not defined', spawned=''):
+    def trace(self, stage='not defined', child=''):
         if self.traced:
             record = ''
             try:
                 record = json.dumps(self.payload)
             except:
                 record = str(self.payload)
-            Trace.emit(self.id, stage, spawned, record)
+            Trace().emit(self.id, stage, child, record)
 
 def create_new_message(payload, sample_rate=0):
     if sample_rate > 0:
@@ -37,5 +37,5 @@ def create_new_message(payload, sample_rate=0):
     else:
         traced = False
     message = Message(payload=payload, traced=traced)
-    message.trace(stage='creation')
+    message.trace(stage='Creation', child=message.id)
     return message

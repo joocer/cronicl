@@ -1,6 +1,7 @@
 import time, logging, warnings
 import networkx as nx
 from .stages import PassThruStage, create_new_message
+from .stages._trace import Trace
 import uuid
 
 
@@ -11,7 +12,7 @@ def always_pass(x):
 class Pipeline(object):
 
 
-    def __init__(self, graph, sample_rate=0.01):
+    def __init__(self, graph, sample_rate=0.01, trace_file='cronicl_trace'):
         self.graph = graph
         self.all_stages = self.graph.nodes()
         self.initialized = False
@@ -19,6 +20,8 @@ class Pipeline(object):
         # tracing can be resource heavy, so we trace a sample
         # default sampling rateis 1%
         self.sample_rate = sample_rate 
+        self.tracer = Trace()
+        self.tracer.open(trace_file)
 
         # get the nodes with 0 incoming nodes
         self.entry_nodes = [ node for node in self.all_stages if len(graph.in_edges(node)) == 0 ]
@@ -41,22 +44,7 @@ class Pipeline(object):
         logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 
 
-    def set_up_tracing(self):
-        import logging
-
-        trace = logging.getLogger('cronicl_trace')
-
-        trace_file = logging.handlers.TimedRotatingFileHandler('cronicl_trace', when='midnight', backupCount=7)
-        trace_formatter = logging.Formatter("%(asctime)-15s %(message)s")
-        trace_file.suffix = "%Y-%m-%d"
-        trace_file.setLevel(logging.DEBUG)
-        trace_file.setFormatter(trace_formatter)
-        trace.addHandler(trace_file)
-
-
-
     def init(self, **kwargs):
-        self.set_up_tracing()
 
         # call all the inits, pass the kwargs
         for stage in self.all_stages:
@@ -98,6 +86,10 @@ class Pipeline(object):
 
 
     def close(self):
+
+        # close the tracer
+        self.tracer.close()
+
         if self.initialized:
             # call all the closes
             for stage in self.all_stages:
@@ -157,9 +149,10 @@ class Pipeline(object):
 
 
     def draw(self):
-        print('instantiator')
+        print('Pipeline Entry')
         for entry in self.entry_nodes:
-            t = self.tree(entry)
+            print(' └─ {}'.format(entry))
+            t = self.tree(entry, '    ')
             print('\n'.join(t))
 
         
