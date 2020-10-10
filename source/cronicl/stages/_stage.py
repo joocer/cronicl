@@ -23,10 +23,12 @@ class Stage(abc.ABC):
         
         This has the instrumentation enabled on it.
         """
+        task_name = self.__class__.__name__
+
         if self.first_run:
             self.first_run = False
             self.first_seen = time.time()
-            logging.debug('first run of: {}'.format(self.__class__.__name__))
+            logging.debug('first run of: {}'.format(task_name))
         self.input_record_count += 1
 
         traced = message.traced
@@ -38,20 +40,30 @@ class Stage(abc.ABC):
         self.execution_time += time.time_ns() - start_ns
 
         has_results = False
+        # if the result is None this will fail
         for result in results or []:
-            has_results = True
-            message.trace(stage=self.__class__.__name__, child=result.id)
-            result.traced = traced
-            self.output_record_count += 1
-            yield result
+            if result is not None:
+                has_results = True
+                message.trace(stage=task_name, version=self.version, child=result.id)
+                result.traced = traced
+                self.output_record_count += 1
+                yield result
 
         if not has_results:
-            message.trace(stage=self.__class__.__name__, child='00000000-0000-0000-0000-000000000000')
+            message.trace(stage=task_name, version=self.version, child='00000000-0000-0000-0000-000000000000')
 
     @abc.abstractmethod
     def execute(self, record):
         """
         The payload, this must be overridden.
+        """
+        pass
+
+    @abc.abstractmethod
+    def version(self):
+        """
+        The version of the stage code, this is intended to facilitate
+        reproducability and auditability of the pipeline.
         """
         pass
 

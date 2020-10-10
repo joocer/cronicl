@@ -12,6 +12,9 @@ class ScreenSink(Stage):
     """
     Displays a record to the screen
     """
+    def version(self):
+        return 1
+    
     def execute(self, message):
         print('>>>', message)
         yield message
@@ -22,6 +25,9 @@ class FileSink(Stage):
     """
     Writes records to a file
     """
+    def version(self):
+        return 1
+
     def __init__(self, filename):
         self.filename = filename
         self.file = open(self.filename, 'w', encoding='utf-8')
@@ -44,5 +50,8 @@ class NullSink(Stage):
     """
     Empty Sink
     """
+    def version(self):
+        return 1
+        
     def execute(self, message):
         yield message

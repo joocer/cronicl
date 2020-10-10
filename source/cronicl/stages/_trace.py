@@ -13,11 +13,17 @@ class Trace(object):
         self.__dict__ = self.__shared_state
 
     def open(self, filename):
-        self.file = open(filename, 'a')
+        self.file = open(filename, 'a', encoding='utf8')
 
-    def emit(self, msg_id, stage, child, record):
-        # should test if it' a new day, if so rollover the file
-        self.file.write("{} id:{} stage:{:<24} child:{} record:{}\n".format(datetime.datetime.now().isoformat(), msg_id, stage[:24], child, record))
+    def emit(self, msg_id, topic, stage, version, child, record):
+        self.file.write("{} id:{} topic:{:<16} stage:{:<24} version:{:<5} child:{} record:{}\n".format(
+            datetime.datetime.now().isoformat(), 
+            msg_id, 
+            topic[:16], 
+            stage[:24], 
+            str(version)[:5],
+            child, 
+            record))
 
     def close(self):
         self.file.close()

@@ -13,6 +13,9 @@ class PassThruStage(Stage):
     """
     Just passes values through.
     """
+    def version(self):
+        return 1
+
     def execute(self, message):
         yield message
 
@@ -22,6 +25,9 @@ class ValidatorStage(Stage):
     """
     Validate against a schema.
     """
+    def version(self):
+        return 1
+        
     def __init__(self, schema):
         self.validator = Validator(schema)
         self.invalid_records = 0
