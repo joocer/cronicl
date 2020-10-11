@@ -12,7 +12,7 @@ def always_pass(x):
 class Pipeline(object):
 
 
-    def __init__(self, graph, sample_rate=0.01, trace_file='cronicl_trace'):
+    def __init__(self, graph, sample_rate=0.001, trace_sink='cronicl_trace'):
         self.graph = graph
         self.all_stages = self.graph.nodes()
         self.initialized = False
@@ -20,8 +20,6 @@ class Pipeline(object):
         # tracing can be resource heavy, so we trace a sample
         # default sampling rateis 1%
         self.sample_rate = sample_rate 
-        self.tracer = Trace()
-        self.tracer.open(trace_file)
 
         # get the nodes with 0 incoming nodes
         self.entry_nodes = [ node for node in self.all_stages if len(graph.in_edges(node)) == 0 ]
@@ -87,9 +85,6 @@ class Pipeline(object):
 
     def close(self):
 
-        # close the tracer
-        self.tracer.close()
-
         if self.initialized:
             # call all the closes
             for stage in self.all_stages:
@@ -141,7 +136,7 @@ class Pipeline(object):
         # contents each get pointers that are ├── with a final └── :
         pointers = [tee] * (len(contents) - 1) + [last]
         for pointer, child_node in zip(pointers, contents):
-            yield prefix + pointer + child_node
+            yield prefix + pointer + child_node + " (version, executions)"
             if len(self.graph.out_edges(node, default=[])) > 0: # extend the prefix and recurse:
                 extension = branch if pointer == tee else space 
                 # i.e. space because last, └── , above so no more |

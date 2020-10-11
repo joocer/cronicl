@@ -23,7 +23,7 @@ class Message(object):
     def __str__(self):
         return str(self.payload)
 
-    def trace(self, stage='not defined', version=0, child=''):
+    def trace(self, stage='not defined', version='0'*8, child=''):
         if self.traced:
             record = ''
             try:
