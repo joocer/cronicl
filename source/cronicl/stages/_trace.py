@@ -1,4 +1,8 @@
 import datetime, abc
+try:
+    from google.cloud import logging
+except:
+    pass
 
 class _Trace(object):
     """
@@ -65,8 +69,7 @@ class StackDriverTracer(baseTracer):
     """
     Write traces to Google StackDriver
     """
-    from google.cloud import logging
-    def _init__(self, sink):
+    def __init__(self, sink):
         self.logging_client = logging.Client()
         self.logger = self.logging_client.logger(sink)
     def emit(self, msg_id, topic, stage, version, child, record):
