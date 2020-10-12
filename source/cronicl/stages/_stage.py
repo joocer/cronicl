@@ -47,6 +47,10 @@ class Stage(abc.ABC):
         # the main processing payload
         results = self.execute(message)
 
+        return_type = type(results).__name__
+        if return_type == 'generator' and not return_type == 'list':
+            raise TypeError('{} must \'return\' a list of messages (list can be 1 element long)'.format(task_name))
+
         self.execution_time += time.time_ns() - start_ns
 
         has_results = False
@@ -67,7 +71,7 @@ class Stage(abc.ABC):
         """
         MUST BE OVERRIDEN
 
-        THIS SHOULD yield ITS RESULTS
+        THIS SHOULD RETURN AN ARRAY OF RESULTS
 
         Called once for every incoming record
         """

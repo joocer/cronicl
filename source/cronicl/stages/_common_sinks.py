@@ -14,7 +14,7 @@ class ScreenSink(Stage):
     """
     def execute(self, message):
         print('>>>', message)
-        yield message
+        return [message]
 
 #####################################################################
 
@@ -27,13 +27,9 @@ class FileSink(Stage):
         self.file = open(self.filename, 'w', encoding='utf-8')
         Stage.__init__(self)
 
-#    def init(self, **kwargs):
-#        self.filename = kwargs.get('filesink_target_file', '')
-#        self.file = open(self.filename, 'w', encoding='utf-8')
-
     def execute(self, message):
         self.file.write("{}\n".format(str(message).rstrip('\n|\r')))
-        yield message
+        return [message]
 
     def close(self):
         self.file.close()
@@ -45,4 +41,4 @@ class NullSink(Stage):
     Empty Sink
     """
     def execute(self, message):
-        yield message
+        return [message]
