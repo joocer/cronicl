@@ -6,6 +6,7 @@ except ImportError:
 from ._trace import Trace
 import inspect, hashlib
 from .._queue import get_queue
+import threading
 
 class Stage(abc.ABC):
 
@@ -20,6 +21,7 @@ class Stage(abc.ABC):
         self.first_run = True
         self.my_version = None
         self.stage_name = ''
+        self.lock = threading.Lock()
 
     def init(self, stage_name='', **kwargs):
         """
@@ -41,7 +43,11 @@ class Stage(abc.ABC):
             self.first_run = False
             self.first_seen = time.time()
             logging.debug('first run of: {}'.format(task_name))
+
+        # deal with thread-unsafety
+        self.lock.acquire() 
         self.input_record_count += 1
+        self.lock.release()
 
         traced = message.traced
         start_ns = time.time_ns()
@@ -53,21 +59,34 @@ class Stage(abc.ABC):
         if return_type == 'generator' and not return_type == 'list':
             raise TypeError('{} must \'return\' a list of messages (list can be 1 element long)'.format(task_name))
 
+        # deal with thread-unsafety
+        self.lock.acquire() 
         self.execution_time += time.time_ns() - start_ns
+        self.lock.release()
 
-        has_results = False
+        response = []
         # if the result is None this will fail
         for result in results or []:
             if result is not None:
-                has_results = True
                 message.trace(stage=task_name, version=self.version(), child=result.id)
+
+                # messages inherit some values from their parent,
+                # traced and initializer are required to be the
+                # same as part of their core function
                 result.traced = traced
                 result.initializer = message.initializer
-                self.output_record_count += 1
-                yield result
 
-        if not has_results:
+                # deal with thread-unsafety
+                self.lock.acquire() 
+                self.output_record_count += 1
+                self.lock.release()
+
+                response.append(result)
+
+        if len(response) == 0:
             message.trace(stage=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000')
+
+        return response
 
     @abc.abstractmethod
     def execute(self, record):

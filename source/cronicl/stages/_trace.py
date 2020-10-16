@@ -72,7 +72,6 @@ class FileTracer(baseTracer):
         self.file = open(sink, 'a', encoding='utf8')
 
     def emit(self, msg_id, stage, version, child, initializer, record):
-        print('tracer called')
         entry = "{} id:{} stage:{:<24} version:{:<16} child:{} init:{} record:{}\n".format(
             datetime.datetime.now().isoformat(), 
             msg_id, 

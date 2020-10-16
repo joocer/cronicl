@@ -48,8 +48,10 @@ class Pipeline(object):
         response = queue.get()
         while response:
             respondent, message = response
-            # if it's the first time we've seen this node, cache
-            # it's path, this also should allow us to force a refresh
+            # If it's the first time we've seen this node, cache
+            # it's path.
+            # Invalidating this cache will allow us to update the
+            # DAG in a running pipeline.
             if not self.paths.get(respondent):
                 self.paths[respondent] = []
                 outgoing_edges = self.graph.out_edges(respondent, default=[])
@@ -78,15 +80,29 @@ class Pipeline(object):
         self.initialized = True
 
         for stage in self.all_stages:
-            get_queue(stage)
-            get_queue('reply')
+            # Stages can define a number of threads to create.
+            #
+            # This is intended to be used by stages with IO, if the
+            # stage is just working in memory, multi-threading is
+            # not advised as locks are likely to cause slow 
+            # processing. It is important to remember, Python does
+            # not concurrently run threads, one thread runs whilst
+            # the other wait.
+            thread_count = self.graph.nodes()[stage].get('threads', 1)
+            # clamp the number of threads between 1 and 5
+            thread_count = 1 if thread_count < 1 else 5 if thread_count > 5 else thread_count
+            
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
-            thread=threading.Thread(target=stage_function.run)
-            thread.daemon = True
-            thread.start()
-            self.threads.append(thread)
+            for i in range(thread_count):
+                thread=threading.Thread(target=stage_function.run)
+                thread.daemon = True
+                thread.start()
+                self.threads.append(thread)
 
-        for i in range(4):
+        # Create multiple threads to handle replies
+        # The reply_handler has no locks and testing has shown that
+        # multiple handlers increases overall pipeline throughput
+        for i in range(2):
             reply_handler_thread = threading.Thread(target=self.reply_handler)
             reply_handler_thread.daemon = True
             reply_handler_thread.start()
@@ -110,7 +126,7 @@ class Pipeline(object):
             for v in value:
                 message = create_new_message(v, sample_rate=self.sample_rate)
                 for entry in self.entry_nodes:
-                    get_queue(entry).put(message)
+                    get_queue(entry).put(message, False)
 
         else:
             # assume we have a single value to pump through the pipeline
@@ -119,7 +135,7 @@ class Pipeline(object):
             # from the entry nodes 
             message = create_new_message(value, sample_rate=self.sample_rate)
             for entry in self.entry_nodes:
-                    get_queue(entry).put(message)
+                    get_queue(entry).put(message, False)
 
         return
 
@@ -132,10 +148,6 @@ class Pipeline(object):
                 stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
                 if hasattr(stage_function, 'close'):
                     stage_function.close()
-
-        for stage in self.all_stages:
-            get_queue(stage).put(None)
-        get_queue('reply').put(None)
 
 
 

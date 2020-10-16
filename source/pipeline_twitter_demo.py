@@ -57,8 +57,8 @@ class MostFollowersStage(cronicl.stages.Stage):
 
 dag = nx.DiGraph()
 
-dag.add_node('Data Validation', function=cronicl.stages.ValidatorStage({ "followers": "numeric", "username" : "string" }))
-dag.add_node('Extract Followers', function=ExtractFollowersStage())
+dag.add_node('Data Validation', function=cronicl.stages.ValidatorStage({ "followers": "numeric", "username" : "string" }), threads=1)
+dag.add_node('Extract Followers', function=ExtractFollowersStage(), threads=1)
 dag.add_node('Most Followers (verified)', function=MostFollowersStage())
 dag.add_node('Most Followers (unverified)', function=MostFollowersStage())
 dag.add_node('Screen Sink', function=cronicl.stages.ScreenSink())
@@ -90,12 +90,12 @@ def generator_chunker(gen, chunk_size):
 def main():
     cronicl.Trace().setHandler(cronicl.FileTracer('cronicl_trace.log'))
 
-    flow = cronicl.Pipeline(dag, sample_rate=0.0)
+    flow = cronicl.Pipeline(dag, sample_rate=0)
     flow.init()
     flow.draw()
 
     with cronicl.timer.Timer():
-        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=-1)  #5347923
+        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=2e6)  #5347923
         for chunk in generator_chunker(file_reader, 1000):
             #print(chr(27)+'[2j')
             #print('\033c')
@@ -103,9 +103,11 @@ def main():
             flow.execute(chunk)
             #flow.running()
 
-    while flow.running():
-        time.sleep(1)
+        while flow.running():
+            time.sleep(1)
+
     flow.close()
+    cronicl.Trace().close()
 
     for node in dag.nodes():
         try:
@@ -117,6 +119,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    #file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=10)
-    #[print(x) for x in c(file_reader, 10) ]
