@@ -48,9 +48,6 @@ class Pipeline(object):
         response = queue.get()
         while response:
             respondent, message = response
-
-            logging.debug(f"I got a reply {message} from {respondent}")
-
             # if it's the first time we've seen this node, cache
             # it's path, this also should allow us to force a refresh
             if not self.paths.get(respondent):
@@ -64,7 +61,6 @@ class Pipeline(object):
             for next_stage, data_filter in self.paths.get(respondent):
                 if message:
                     if data_filter(message):
-                        logging.debug(f'Ima gonna send to {next_stage}')
                         get_queue(next_stage).put(message)
 
             response = queue.get()

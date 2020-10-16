@@ -121,16 +121,21 @@ class Stage(abc.ABC):
 
 
     def run(self):
+        """
+        Method to run in a separate threat.
+        """
         logging.debug(f"Thread running {self.stage_name} started")
         queue = get_queue(self.stage_name)
+        # .get() is bocking, it will wait - which is okay if this
+        # function is run in a thread
         message = queue.get()
         while message:
-            logging.debug(f"I got {message.id} ({self.stage_name})")
             results = self(message)
-            for result in results or []:
+            for result in results:
                 if result is not None:
                     reply_message = ( self.stage_name, result )
                     get_queue('reply').put(reply_message)
             message = queue.get()
+        # None is used to exit the method
         logging.debug(f'TERM {self.stage_name}')
 

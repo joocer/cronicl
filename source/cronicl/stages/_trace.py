@@ -1,3 +1,14 @@
+"""
+Implements the logging parts of the tracer.
+
+Tracing is driven from the messages, which also contains a .trace 
+boolean attribute. This code is just the code which writes the
+trace to file or other logger.
+
+Tracers are pluggable, you can write a new tracer by inheritting 
+baseTracer and using .setHandler
+"""
+
 import datetime, abc
 try:
     from google.cloud import logging
@@ -14,10 +25,15 @@ class _Trace(object):
         pass
 
     def setHandler(self, tracer):
+        if not issubclass(tracer.__class__, baseTracer):
+            raise Exception('Tracers must inherit from baseTracer.')
         self.tracer = tracer
 
-    def emit(self, msg_id, topic, stage, version, child, initializer, record):
-        self.tracer.emit(msg_id, topic, stage, version, child, initializer, record)
+    def emit(self, msg_id, stage, version, child, initializer, record):
+        self.tracer.emit(msg_id, stage, version, child, initializer, record)
+
+    def close(self):
+        self.tracer.close()
 
 
 def Trace():
@@ -36,6 +52,8 @@ class baseTracer(object):
     @abc.abstractmethod
     def emit(self, *args):
         pass
+    def close(self):
+        pass
 
 
 class NullTracer(baseTracer):
@@ -53,17 +71,20 @@ class FileTracer(baseTracer):
     def __init__(self, sink):
         self.file = open(sink, 'a', encoding='utf8')
 
-    def emit(self, msg_id, topic, stage, version, child, initializer, ecord):
-        entry = "{} id:{} topic:{:<16} stage:{:<24} version:{:<16} child:{} init:{} record:{}\n".format(
+    def emit(self, msg_id, stage, version, child, initializer, record):
+        print('tracer called')
+        entry = "{} id:{} stage:{:<24} version:{:<16} child:{} init:{} record:{}\n".format(
             datetime.datetime.now().isoformat(), 
             msg_id, 
-            topic[:16], 
             stage[:24], 
             str(version)[:16],
             child, 
             initializer,
             record)
         self.file.write(entry)
+    
+    def close(self):
+        self.file.close()
    
    
 class StackDriverTracer(baseTracer):
