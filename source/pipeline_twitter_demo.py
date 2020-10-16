@@ -16,6 +16,7 @@ import cronicl
 from cronicl.stages import create_new_message 
 import logging, sys
 import networkx as nx
+import time
 
 # this is the mechanism used for the message tracing.
 #logging.basicConfig( level=logging.DEBUG, format="%(created)-15s %(message)s")
@@ -33,23 +34,24 @@ class ExtractFollowersStage(cronicl.stages.Stage):
                 "user": payload.get('username', ''), 
                 "verified": verified }
             message.payload = result
-            yield message
+            return [message]
         except:
             print(message)
-            yield None 
+            return None 
 
 class MostFollowersStage(cronicl.stages.Stage):
 
     def init(self, **kwargs):
         self.user = ''
         self.followers = 0
+        cronicl.stages.Stage.init(self)
 
     def execute(self, message):
         payload = message.payload
         if payload.get('followers') > self.followers:
             self.followers = payload.get('followers')
             self.user = payload.get('user')
-            yield message
+            return [message]
 
 
 
@@ -65,11 +67,8 @@ dag.add_edge('Data Validation', 'Extract Followers')
 dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.payload.get('verified') == True )
 dag.add_edge('Extract Followers', 'Most Followers (unverified)', filter=lambda x: x.payload.get('verified') == False )
 dag.add_edge('Most Followers (verified)', 'Screen Sink')
-dag.add_edge('Most Followers (unverified)', 'Screen Sink')
+#dag.add_edge('Most Followers (unverified)', 'Screen Sink')
 
-
-
-from concurrent.futures import ThreadPoolExecutor 
 
 def generator_chunker(gen, chunk_size):
     idx = 0
@@ -95,17 +94,17 @@ def main():
     flow.init()
     flow.draw()
 
-    with cronicl.timer.Timer() as t:
-
-        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=500000)  #5347923
-
-        #with ThreadPoolExecutor (max_workers=5) as threads:
-        #    t_res = threads.map(flow.execute, generator_chunker(file_reader, 1000))
-        #all(t_res)
-
-        for chunk in generator_chunker(file_reader, 1000):  
+    with cronicl.timer.Timer():
+        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=-1)  #5347923
+        for chunk in generator_chunker(file_reader, 1000):
+            #print(chr(27)+'[2j')
+            #print('\033c')
+            #print('\x1bc')
             flow.execute(chunk)
+            #flow.running()
 
+    while flow.running():
+        time.sleep(1)
     flow.close()
 
     for node in dag.nodes():

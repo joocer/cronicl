@@ -10,12 +10,16 @@ from ._trace import Trace
 
 class Message(object):
 
-    def __init__(self, payload=None, traced=False, topic='dead_letters'):
+    def __init__(self, payload=None, traced=False, topic='dead_letters', initializer=None):
         self.topic = topic
         self.id = str(uuid.uuid4())
         self.payload = payload
         self.attributes = {}
         self.traced = traced
+        self.initializer = initializer
+        if self.initializer:
+            self.initializer = self.id
+        
 
     def __repr__(self):
         return self.payload
@@ -30,7 +34,7 @@ class Message(object):
                 record = json.dumps(self.payload)
             except:
                 record = str(self.payload)
-            Trace().emit(self.id, self.topic, stage, version, child, record)
+            Trace().emit(self.id, self.topic, stage, version, child, self.initializer, record)
 
 def create_new_message(payload, sample_rate=0):
     if sample_rate > 0:

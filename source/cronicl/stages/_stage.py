@@ -1,10 +1,11 @@
-import time, abc, logging, logging.handlers
+import time, abc, logging
 try:
     import ujson as json
 except ImportError:
     import json
 from ._trace import Trace
 import inspect, hashlib
+from .._queue import get_queue
 
 class Stage(abc.ABC):
 
@@ -18,8 +19,9 @@ class Stage(abc.ABC):
         self.execution_time = 0
         self.first_run = True
         self.my_version = None
+        self.stage_name = ''
 
-    def init(self, **kwargs):
+    def init(self, stage_name='', **kwargs):
         """
         OVERRIDE IF REQUIRED
 
@@ -60,6 +62,7 @@ class Stage(abc.ABC):
                 has_results = True
                 message.trace(stage=task_name, version=self.version(), child=result.id)
                 result.traced = traced
+                result.initializer = message.initializer
                 self.output_record_count += 1
                 yield result
 
@@ -115,3 +118,19 @@ class Stage(abc.ABC):
             'execution_start': self.first_seen,
             'execution_time': self.execution_time / 1e9
         }
+
+
+    def run(self):
+        logging.debug(f"Thread running {self.stage_name} started")
+        queue = get_queue(self.stage_name)
+        message = queue.get()
+        while message:
+            logging.debug(f"I got {message.id} ({self.stage_name})")
+            results = self(message)
+            for result in results or []:
+                if result is not None:
+                    reply_message = ( self.stage_name, result )
+                    get_queue('reply').put(reply_message)
+            message = queue.get()
+        logging.debug(f'TERM {self.stage_name}')
+

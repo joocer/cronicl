@@ -2,17 +2,17 @@ import time, logging, warnings
 import networkx as nx
 from .stages import PassThruStage, create_new_message
 from .stages._trace import Trace
+from ._queue import get_queue, queues_empty
 import uuid
 
-
-def always_pass(x):
-    return True
-
+import threading
 
 class Pipeline(object):
 
 
     def __init__(self, graph, sample_rate=0.001, trace_sink='cronicl_trace'):
+        self.threads = []
+        self.paths = { }
         self.graph = graph
         self.all_stages = self.graph.nodes()
         self.initialized = False
@@ -42,6 +42,35 @@ class Pipeline(object):
         logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 
 
+    def reply_handler(self):
+
+        queue = get_queue('reply')
+        response = queue.get()
+        while response:
+            respondent, message = response
+
+            logging.debug(f"I got a reply {message} from {respondent}")
+
+            # if it's the first time we've seen this node, cache
+            # it's path, this also should allow us to force a refresh
+            if not self.paths.get(respondent):
+                self.paths[respondent] = []
+                outgoing_edges = self.graph.out_edges(respondent, default=[])
+                for outgoing_edge in outgoing_edges:
+                    next_stage = outgoing_edge[1]
+                    data_filter = self.graph.get_edge_data(respondent, next_stage).get('filter', lambda x: True)
+                    self.paths[respondent].append((next_stage, data_filter))
+            
+            for next_stage, data_filter in self.paths.get(respondent):
+                if message:
+                    if data_filter(message):
+                        logging.debug(f'Ima gonna send to {next_stage}')
+                        get_queue(next_stage).put(message)
+
+            response = queue.get()
+        logging.debug("REPLY handler got TERM signal")
+
+
     def init(self, **kwargs):
 
         # call all the inits, pass the kwargs
@@ -49,7 +78,23 @@ class Pipeline(object):
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
             if hasattr(stage_function, 'init'):
                 stage_function.init(**kwargs)
+            stage_function.stage_name = stage 
         self.initialized = True
+
+        for stage in self.all_stages:
+            get_queue(stage)
+            get_queue('reply')
+            stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
+            thread=threading.Thread(target=stage_function.run)
+            thread.daemon = True
+            thread.start()
+            self.threads.append(thread)
+
+        for i in range(4):
+            reply_handler_thread = threading.Thread(target=self.reply_handler)
+            reply_handler_thread.daemon = True
+            reply_handler_thread.start()
+            self.threads.append(reply_handler_thread)
 
 
     def execute(self, value):
@@ -69,7 +114,7 @@ class Pipeline(object):
             for v in value:
                 message = create_new_message(v, sample_rate=self.sample_rate)
                 for entry in self.entry_nodes:
-                    [ x for x in (self._inner_execute(entry, message)) ]
+                    get_queue(entry).put(message)
 
         else:
             # assume we have a single value to pump through the pipeline
@@ -78,7 +123,7 @@ class Pipeline(object):
             # from the entry nodes 
             message = create_new_message(value, sample_rate=self.sample_rate)
             for entry in self.entry_nodes:
-                    [ x for x in (self._inner_execute(entry, message)) ]
+                    get_queue(entry).put(message)
 
         return
 
@@ -92,37 +137,15 @@ class Pipeline(object):
                 if hasattr(stage_function, 'close'):
                     stage_function.close()
 
+        for stage in self.all_stages:
+            get_queue(stage).put(None)
+        get_queue('reply').put(None)
 
-    def _inner_execute(self, stage_node, record):
-        """
-        Execute the stage, and then find out-going edges, execute any 
-        filters defined on the edge and then execute the connected
-        stage nodes.
-        """
-        #logging.debug('_inner_execute({}, {})'.format(stage_node, 5))
 
-        stage = self.graph.nodes()[stage_node].get('function', PassThruStage())
-        outgoing_edges = self.graph.out_edges(stage_node, default=[])
-        
-        # the primary payload
-        results = stage(record)
 
-        # we don't know if we have any results, 'or []' handles 'None'
-        for result in (results or []):
+    def running(self):
+        return not queues_empty()
 
-            # None terminates the flow
-            if result == None:
-                continue
-
-            # for each out-going edge
-            for outgoing_edge in outgoing_edges:
-                next_stage = outgoing_edge[1]
-                # get the filter associated with the edge
-                data_filter = self.graph.get_edge_data(stage_node, next_stage).get('filter', always_pass)
-                # if the data 'passes' the filter, execute the next stage
-                if data_filter(result):
-                    yield from self._inner_execute(next_stage, result)
-        return
 
     # adapted from https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
     def tree(self, node, prefix=''):

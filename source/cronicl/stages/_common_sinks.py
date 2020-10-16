@@ -88,4 +88,4 @@ class BigQuerySink(Stage):
             for error in errors:
                 print(error)
         
-        return message
+        return [message]
