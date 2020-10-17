@@ -9,7 +9,8 @@ The message also carries a set of attributes, this allows key/value
 information separate to the payload to be sent with the payload.
 """
 
-import uuid, logging, random # we're using to select random samples so prng is good enough
+# we're using to select random samples so prng is good enough
+import uuid, logging, random 
 try:
     import ujson as json
 except ImportError:
@@ -20,7 +21,8 @@ from ._trace import Trace
 class Message(object):
 
     def __init__(self, payload=None, traced=False, topic='dead_letters', initializer=None):
-        self.id = str(uuid.uuid4())
+        # unique identifier for this message
+        self.id = str(uuid.uuid4()) 
         self.payload = payload
         self.attributes = {}
         self.traced = traced

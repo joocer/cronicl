@@ -103,3 +103,25 @@ def write_jsonl(filename, data):
                 jsonfile.write(json.dumps(r) + '\n')
             except:
                 print(r)
+
+
+def generator_chunker(gen, chunk_size):
+    idx = 0
+    chunk = [None] * chunk_size
+    item = next(gen)
+    while item:
+        chunk[idx] = item
+        idx += 1
+        if idx == chunk_size:
+            yield chunk
+            idx = 0
+        try:
+            item = next(gen)
+        except:
+            item = None
+    yield chunk[0:idx]
+
+def clear_screen():
+    print(chr(27)+'[2j')
+    print('\033c')
+    print('\x1bc')

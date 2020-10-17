@@ -9,8 +9,7 @@ import threading
 
 class Pipeline(object):
 
-
-    def __init__(self, graph, sample_rate=0.001, trace_sink='cronicl_trace'):
+    def __init__(self, graph, sample_rate=0.001):
         self.threads = []
         self.paths = { }
         self.graph = graph
@@ -18,10 +17,10 @@ class Pipeline(object):
         self.initialized = False
 
         # tracing can be resource heavy, so we trace a sample
-        # default sampling rateis 1%
+        # default sampling rateis 0.1% (one per thousand)
         self.sample_rate = sample_rate 
 
-        # get the nodes with 0 incoming nodes
+        # get the entry nodes - the ones with 0 incoming nodes
         self.entry_nodes = [ node for node in self.all_stages if len(graph.in_edges(node)) == 0 ]
 
         # VALIDATE THE GRAPH
@@ -30,6 +29,7 @@ class Pipeline(object):
             nx.find_cycle(graph, orientation="original")
         except:
             pass
+            #raise Exception("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
 
         # Every stage node must have a function attribute
         if not all([graph.nodes()[node].get('function') for node in self.all_stages]):
@@ -43,39 +43,53 @@ class Pipeline(object):
 
 
     def reply_handler(self):
+        """
+        Accept messages on the reply queue, replies attest the stage
+        they have come from, we work out the next stages and put
+        the message onto their queue.
 
+        queue.get() is blocking so this should be run in a separate
+        thread.
+
+        This is called for every message in the system, so for 
+        performance it caches key information. Although not a pure
+        function, it is deterministic and idempotent, which should
+        make it thread-safe.
+        """
         queue = get_queue('reply')
         response = queue.get()
         while response:
             respondent, message = response
-            # If it's the first time we've seen this node, cache
-            # it's path.
+            # If it's the first time we've seen this respondent, 
+            # cache its path.
             # Invalidating this cache will allow us to update the
             # DAG in a running pipeline.
             if not self.paths.get(respondent):
                 self.paths[respondent] = []
                 outgoing_edges = self.graph.out_edges(respondent, default=[])
-                for outgoing_edge in outgoing_edges:
-                    next_stage = outgoing_edge[1]
+                for this_stage, next_stage in outgoing_edges:
                     data_filter = self.graph.get_edge_data(respondent, next_stage).get('filter', lambda x: True)
                     self.paths[respondent].append((next_stage, data_filter))
             
             for next_stage, data_filter in self.paths.get(respondent):
                 if message:
                     if data_filter(message):
-                        get_queue(next_stage).put(message)
+                        get_queue(next_stage).put(message, False)
 
             response = queue.get()
+
+        # None is used to terminate the handler
         logging.debug("REPLY handler got TERM signal")
 
 
     def init(self, **kwargs):
 
-        # call all the inits, pass the kwargs
+        # call all the stage inits, pass the kwargs
         for stage in self.all_stages:
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
             if hasattr(stage_function, 'init'):
                 stage_function.init(**kwargs)
+            # stages need to be told their name
             stage_function.stage_name = stage 
         self.initialized = True
 
@@ -114,28 +128,17 @@ class Pipeline(object):
         """
         if not self.initialized:
             raise Exception("Pipeline's init method must be called before execute")
-
-        #print(value, type(value))
         
-        if type(value).__name__ in ['generator', 'list']:
-            # we have something which creates multiple messages 
-            # (like a file reader)
-            #logging.debug('generator')
-            # create the message envelopes and execute the pipeline 
-            # from the entry nodes 
-            for v in value:
-                message = create_new_message(v, sample_rate=self.sample_rate)
-                for entry in self.entry_nodes:
-                    get_queue(entry).put(message, False)
+        # if the value isn't iterable, put it in a list
+        if not type(value).__name__ in ['generator', 'list']:
+            value = [value]
 
-        else:
-            # assume we have a single value to pump through the pipeline
-            #logging.debug('other')
-            # create the message envelopes and execute the pipeline 
-            # from the entry nodes 
-            message = create_new_message(value, sample_rate=self.sample_rate)
+        # Create the message envelopes and execute the pipeline from
+        # the entry nodes 
+        for v in value:
+            message = create_new_message(v, sample_rate=self.sample_rate)
             for entry in self.entry_nodes:
-                    get_queue(entry).put(message, False)
+                get_queue(entry).put(message, False)
 
         return
 
@@ -148,7 +151,6 @@ class Pipeline(object):
                 stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
                 if hasattr(stage_function, 'close'):
                     stage_function.close()
-
 
 
     def running(self):
@@ -167,7 +169,7 @@ class Pipeline(object):
         # contents each get pointers that are ├── with a final └── :
         pointers = [tee] * (len(contents) - 1) + [last]
         for pointer, child_node in zip(pointers, contents):
-            yield prefix + pointer + child_node + " (version, executions)"
+            yield prefix + pointer + child_node
             if len(self.graph.out_edges(node, default=[])) > 0: # extend the prefix and recurse:
                 extension = branch if pointer == tee else space 
                 # i.e. space because last, └── , above so no more |
@@ -180,5 +182,3 @@ class Pipeline(object):
             print(' └─ {}'.format(entry))
             t = self.tree(entry, '    ')
             print('\n'.join(t))
-
-        

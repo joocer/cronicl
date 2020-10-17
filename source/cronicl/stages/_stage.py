@@ -1,3 +1,14 @@
+"""
+Stage is a base class which includes most of the heavy-lifting
+for tracing and auditing.
+
+There are three methods which are safe to override, 'init', 'close'
+and 'execute', 'execute' must be overridden. 'execute' should
+contain the processing logic, 'init' is intended for activities
+like opening files and caching lookups, 'close' for any tidy-up
+like closing files. 'execute' must return a list of messages.
+"""
+
 import time, abc, logging
 try:
     import ujson as json
@@ -13,6 +24,8 @@ class Stage(abc.ABC):
     def __init__(self):
         """
         IF OVERRIDEN, CALL THIS METHOD TOO.
+
+        - like this Stage.__init__(self)
         """
         self.input_record_count = 0
         self.output_record_count = 0
@@ -23,7 +36,7 @@ class Stage(abc.ABC):
         self.stage_name = ''
         self.lock = threading.Lock()
 
-    def init(self, stage_name='', **kwargs):
+    def init(self, **kwargs):
         """
         OVERRIDE IF REQUIRED
 
@@ -35,7 +48,7 @@ class Stage(abc.ABC):
         """
         DO NOT OVERRIDE THIS METHOD.
         
-        This is where the auditting is implemented.
+        This is where the auditting and tracing are implemented.
         """
         task_name = self.__class__.__name__
 
@@ -93,7 +106,7 @@ class Stage(abc.ABC):
         """
         MUST BE OVERRIDEN
 
-        THIS SHOULD RETURN AN ARRAY OF RESULTS
+        THIS SHOULD RETURN AN LIST OF MESSAGES
 
         Called once for every incoming record
         """
@@ -117,6 +130,7 @@ class Stage(abc.ABC):
             self.my_version = full_hash.hexdigest()[-8:]
         return self.my_version
 
+
     def close(self):
         """
         OVERRIDE IF REQUIRED
@@ -125,17 +139,23 @@ class Stage(abc.ABC):
         """
         pass
 
+
     def read_sensor(self):
         """
         IF OVERRIDEN, INCLUDE THIS INFORMATION TOO.
+
+        This reads the auditting information from the stage.
         """
         return { 
             'process': self.__class__.__name__,
+            'stage_name': self.stage_name,
             'version': self.version(),
             'input_records': self.input_record_count,
             'output_records': self.output_record_count,
+            'throughput_ratio': round(self.output_record_count / self.input_record_count, 4) if self.input_record_count else 0,
+            'throughput': round(self.input_record_count / self.execution_time, 4) if self.execution_time else 0,
             'execution_start': self.first_seen,
-            'execution_time': self.execution_time / 1e9
+            'execution_time': round(self.execution_time / 1e9, 4)
         }
 
 

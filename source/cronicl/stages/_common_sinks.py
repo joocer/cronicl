@@ -76,6 +76,7 @@ class BigQuerySink(Stage):
         my_table = ".".join([project, dataset, table])
 
         if self.__attribute_override_warning and (inited_table != my_table):
+            self.__attribute_override_warning = False
             warnings.warn('BigQuerySink is using project/dataset/table attributes from the message to override initialized values')
 
         client = bigquery.Client()
