@@ -14,7 +14,7 @@ class PassThruStage(Stage):
     Just passes values through.
     """
     def execute(self, message):
-        yield message
+        return [message]
 
 #####################################################################
 
@@ -32,7 +32,7 @@ class ValidatorStage(Stage):
         if not valid:
             self.invalid_records += 1
         else:
-            yield message
+            return [message]
 
     def read_sensor(self):
         readings = Stage.read_sensor(self)

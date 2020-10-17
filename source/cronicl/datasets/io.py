@@ -11,6 +11,7 @@ except ImportError:
 import csv
 from pathlib import Path
 
+
 def to_csv(dataset, filename, columns=['first_row']):
     """
     Saves a dataset as a CSV
@@ -51,7 +52,6 @@ def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
     file_reader = read_file(filename, chunk_size=chunk_size, delimiter=delimiter)
     line = next(file_reader)
     while line:
-
         yield(json.loads(line))
         limit -= 1
         if limit == 0:
@@ -65,41 +65,20 @@ def read_csv(filename):
     pass
 
 
-
-
 def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
     """
     Reads an arbitrarily long file, line by line
-        
-    Returns an generator of lines in the file
     """
-    
-    file_size = Path(filename).stat().st_size
-    file = open(filename, 'r', encoding="utf8")
-
-    carry_forward = ''
-    cursor = 0
-    while (cursor < file_size):
-        chunk = file.read(chunk_size)   
-        cursor = cursor + len(chunk)
-        #chunk = chunk.decode('utf-8')
-
-        # add the last line from the previous cycle
-        chunk = carry_forward + chunk
+    with open(filename, 'r', encoding="utf8") as f:
         carry_forward = ''
-        lines = chunk.split(delimiter)
-        if len(lines) == 1:
-            yield chunk
-        else:
-            # the last line is likely to be incomplete, save it to carry forward
-            carry_forward = lines[-1]  
-            del lines[-1]
-            for line in lines:
-                yield line
-    if len(carry_forward) > 0:
-        yield carry_forward
-
-    file.close()
+        chunk = 'INITIALIZED'
+        while len(chunk) > 0:
+            chunk = carry_forward + f.read(chunk_size)
+            lines = chunk.split(delimiter)
+            carry_forward = lines.pop()
+            yield from lines
+        if carry_forward:
+            yield carry_forward
 
 
 def read_csv_lines(filename):
@@ -124,3 +103,25 @@ def write_jsonl(filename, data):
                 jsonfile.write(json.dumps(r) + '\n')
             except:
                 print(r)
+
+
+def generator_chunker(gen, chunk_size):
+    idx = 0
+    chunk = [None] * chunk_size
+    item = next(gen)
+    while item:
+        chunk[idx] = item
+        idx += 1
+        if idx == chunk_size:
+            yield chunk
+            idx = 0
+        try:
+            item = next(gen)
+        except:
+            item = None
+    yield chunk[0:idx]
+
+def clear_screen():
+    print(chr(27)+'[2j')
+    print('\033c')
+    print('\x1bc')

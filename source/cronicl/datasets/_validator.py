@@ -14,11 +14,37 @@ Schema is a dictionary
     "field_name": "type"
 }
 
+change to-->
+schema = {
+    fields=[
+        {
+            "name": "initiated",
+            "type": "string",
+            "format": "default",
+            "nullable": false
+        }, 
+        {
+            "name": "hiredate",
+            "type": "date",
+            "format": "default",
+            "nullable": false
+        }, 
+        {
+            "name": "email",
+            "type": "string",
+            "format": "default",
+            "nullable": true
+        }
+    ],
+    allow_additional=true
+}
+
 
 TODO:
     - raise errors on validation errors
+    - rationality/sanity, e.g. ages should be positive
+        - constraint additions (e.g. numeric [0 - 100] (ensures number is between 0 and 100))
     - regex validator
-    - constraint additions (e.g. numeric [0 - 100] (ensures number is between 0 and 100))
     - fail on missing or excess fields 
 
 """

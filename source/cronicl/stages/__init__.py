@@ -1,6 +1,6 @@
 from ._stage import Stage
 from ._messages import Message, create_new_message
-from ._trace import Trace
+from ._trace import *
 
 # split out for readability
 from ._common_stages import *
