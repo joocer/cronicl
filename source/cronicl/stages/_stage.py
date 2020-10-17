@@ -35,6 +35,7 @@ class Stage(abc.ABC):
         self.my_version = None
         self.stage_name = ''
         self.lock = threading.Lock()
+        self.errors = 0
 
     def init(self, **kwargs):
         """
@@ -66,7 +67,13 @@ class Stage(abc.ABC):
         start_ns = time.time_ns()
 
         # the main processing payload
-        results = self.execute(message)
+        try:
+            results = self.execute(message)
+        except:
+            self.lock.acquire() 
+            self.errors += 1
+            self.lock.release()   
+            results = []
 
         return_type = type(results).__name__
         if return_type == 'generator' and not return_type == 'list':
@@ -152,10 +159,11 @@ class Stage(abc.ABC):
             'version': self.version(),
             'input_records': self.input_record_count,
             'output_records': self.output_record_count,
-            'throughput_ratio': round(self.output_record_count / self.input_record_count, 4) if self.input_record_count else 0,
-            'throughput': round(self.input_record_count / self.execution_time, 4) if self.execution_time else 0,
+            'errored_records': self.errors,
+            'input_output_ratio': round(self.output_record_count / self.input_record_count, 4) if self.input_record_count else 0,
+            'records_per_second': round(self.input_record_count / (self.execution_time / 1e9)) if self.execution_time else 0,
             'execution_start': self.first_seen,
-            'execution_time': round(self.execution_time / 1e9, 4)
+            'execution_time': round(self.execution_time / 1e9, 4) if self.execution_time else 0
         }
 
 

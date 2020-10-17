@@ -93,10 +93,9 @@ class StackDriverTracer(baseTracer):
     def __init__(self, sink):
         self.logging_client = logging.Client()
         self.logger = self.logging_client.logger(sink)
-    def emit(self, msg_id, topic, stage, version, child, initializer, record):
+    def emit(self, msg_id, stage, version, child, initializer, record):
         entry = {
             "id": msg_id,
-            "topic": topic,
             "stage": stage,
             "version": str(version)[:16],
             "child": child,
