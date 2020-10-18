@@ -24,9 +24,9 @@ class _Trace(object):
     def __init__(self):
         pass
 
-    def setHandler(self, tracer):
-        if not issubclass(tracer.__class__, baseTracer):
-            raise Exception('Tracers must inherit from baseTracer.')
+    def set_handler(self, tracer):
+        if not issubclass(tracer.__class__, BaseTracer):
+            raise Exception('Tracers must inherit from BaseTracer.')
         self.tracer = tracer
 
     def emit(self, msg_id, stage, version, child, initializer, record):
@@ -45,7 +45,7 @@ def Trace():
     return _Trace._instance
 
 
-class baseTracer(object):
+class BaseTracer(object):
     """
     Base Class for Tracer
     """
@@ -56,7 +56,7 @@ class baseTracer(object):
         pass
 
 
-class NullTracer(baseTracer):
+class NullTracer(BaseTracer):
     """
     Just ignore everything
     """
@@ -64,7 +64,7 @@ class NullTracer(baseTracer):
         pass
 
 
-class FileTracer(baseTracer):
+class FileTracer(BaseTracer):
     """
     Write traces out to a file
     """
@@ -86,7 +86,7 @@ class FileTracer(baseTracer):
         self.file.close()
    
    
-class StackDriverTracer(baseTracer):
+class StackDriverTracer(BaseTracer):
     """
     Write traces to Google StackDriver
     """

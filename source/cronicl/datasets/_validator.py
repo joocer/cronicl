@@ -97,7 +97,7 @@ class Validator(object):
         try:
             if type(value).__name__ in ['datetime', 'date', 'time']:
                 return True
-            test = datetime.datetime.fromisoformat(value)
+            datetime.datetime.fromisoformat(value)
             return True
         except:
             return False
