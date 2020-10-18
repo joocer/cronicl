@@ -15,7 +15,7 @@ try:
     import ujson as json
 except ImportError:
     import json
-from ._trace import Trace
+from ._trace import get_tracer
 
 
 class Message(object):
@@ -45,7 +45,7 @@ class Message(object):
                 record = json.dumps(self.payload)
             except:
                 record = str(self.payload)
-            Trace().emit(self.id, stage, version, child, self.initializer, record)
+            get_tracer().emit(self.id, stage, version, child, self.initializer, record)
 
 
 def create_new_message(payload, sample_rate=0):

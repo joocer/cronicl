@@ -97,7 +97,7 @@ def main():
     # Tell the tracer to use the FileTracer, we don't use this 
     # because we're setting the sample rate to zero, this is just
     # to show how it is done.
-    cronicl.Trace().setHandler(cronicl.FileTracer('cronicl_trace.log'))
+    cronicl.get_tracer().set_handler(cronicl.FileTracer('cronicl_trace.log'))
 
     # create a pipeline, pass it the graph we created, set the
     # trace sampling off
@@ -113,7 +113,7 @@ def main():
     with cronicl.timer.Timer('pipeline'):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=1e6)
+        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=1e4)
         for chunk in cronicl.datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual 
@@ -127,7 +127,7 @@ def main():
 
     # close the pipeline and the tracer
     flow.close()
-    cronicl.Trace().close()
+    cronicl.get_tracer().close()
 
     # read the sensors on the stages, this tells us things like
     # - how many records they processed

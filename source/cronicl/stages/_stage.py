@@ -14,7 +14,7 @@ try:
     import ujson as json
 except ImportError:
     import json
-from ._trace import Trace
+from ._trace import get_tracer
 import inspect, hashlib
 from .._queue import get_queue
 import threading

@@ -1,7 +1,6 @@
 import time, logging, warnings
 import networkx as nx
 from .stages import PassThruStage, create_new_message
-from .stages._trace import Trace
 from ._queue import get_queue, queues_empty
 import uuid
 
@@ -31,15 +30,15 @@ class Pipeline(object):
         except nx.NetworkXNoCycle:
             has_loop = False
         if has_loop:
-            raise Exception("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
+            raise TypeError("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
 
         # Every stage node must have a function attribute
         if not all([graph.nodes()[node].get('function') for node in self.all_stages]):
-            raise Exception("All stages in the Pipeline must have a 'function' attribute")
+            raise TypeError("All stages in the Pipeline must have a 'function' attribute")
 
         # Every object on the function attribute must have an execute method
         if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_stages]):
-            raise Exception("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
+            raise TypeError("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
 
         logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 

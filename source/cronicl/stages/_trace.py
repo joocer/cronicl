@@ -26,7 +26,7 @@ class _Trace(object):
 
     def set_handler(self, tracer):
         if not issubclass(tracer.__class__, BaseTracer):
-            raise Exception('Tracers must inherit from BaseTracer.')
+            raise TypeError('Tracers must inherit from BaseTracer.')
         self.tracer = tracer
 
     def emit(self, msg_id, stage, version, child, initializer, record):
@@ -36,7 +36,7 @@ class _Trace(object):
         self.tracer.close()
 
 
-def Trace():
+def get_tracer():
     """
     Call this to get an instance of the tracer
     """

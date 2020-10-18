@@ -87,8 +87,6 @@ def read_csv_lines(filename):
 def write_jsonl(filename, data):
     with open(filename, "w", encoding='utf-8') as jsonfile:
         for r in data:
-            #print(r)
-            #time.sleep(0.5)
             try:
                 jsonfile.write(json.dumps(r) + '\n')
             except:
