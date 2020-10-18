@@ -1,5 +1,8 @@
 # cronicl
 
+[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-white.svg)](https://sonarcloud.io/dashboard?id=joocer_cronicl)  
+[![Known Vulnerabilities](https://snyk.io/test/github/joocer/cronicl/badge.svg)](https://snyk.io/test/github/joocer/cronicl)
+
 **cronicl** is data processing pipeline written in Python.
 
 It includes the ability to 
