@@ -25,11 +25,13 @@ class Pipeline(object):
 
         # VALIDATE THE GRAPH
         # The pipeline can't be cyclic
+        has_loop = True
         try:
-            nx.find_cycle(graph, orientation="original")
-        except:
-            pass
-            #raise Exception("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
+            nx.find_cycle(graph, orientation="ignore")
+        except nx.NetworkXNoCycle:
+            has_loop = False
+        if has_loop:
+            raise Exception("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
 
         # Every stage node must have a function attribute
         if not all([graph.nodes()[node].get('function') for node in self.all_stages]):

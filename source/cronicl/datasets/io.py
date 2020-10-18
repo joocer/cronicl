@@ -38,14 +38,6 @@ def to_csv(dataset, filename, columns=['first_row']):
             row = json_list.__next__()
 
 
-def to_jsonl(dataset, filename):
-    pass
-
-
-def to_pandas(dataset):
-    pass
-
-
 def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
     """
     """
@@ -61,8 +53,6 @@ def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
         except:
             return
 
-def read_csv(filename):
-    pass
 
 
 def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
