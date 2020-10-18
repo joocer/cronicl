@@ -1,13 +1,16 @@
-from fastapi import FastAPI
+from flask import Flask                                                         
+import threading
+
 from .._queue import queue_sizes
 
-app = FastAPI()
+port = 8000
+app = Flask(__name__)
 
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/queues")
-async def queues():
+@app.route("/")
+def main():
     return queue_sizes()
+
+def api_initializer():
+    app.run(host='0.0.0.0', port=port)
+
+

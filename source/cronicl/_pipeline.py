@@ -4,6 +4,7 @@ from .stages import PassThruStage, create_new_message
 from ._queue import get_queue, queues_empty
 import uuid
 from ._exceptions import ValidationError, DependenciesNotMetError
+from .interface import api_initializer
 
 import threading
 
@@ -40,6 +41,11 @@ class Pipeline(object):
         # Every object on the function attribute must have an execute method
         if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_stages]):
             raise ValidationError("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
+
+
+        api_thread = threading.Thread(target=api_initializer)
+        api_thread.daemon = True
+        api_thread.start()
 
         logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 

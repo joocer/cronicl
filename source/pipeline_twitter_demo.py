@@ -113,7 +113,7 @@ def main():
     with cronicl.timer.Timer('pipeline'):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=1e4)
+        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=-1)
         for chunk in cronicl.datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual 
