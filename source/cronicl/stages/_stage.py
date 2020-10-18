@@ -69,7 +69,10 @@ class Stage(abc.ABC):
         # the main processing payload
         try:
             results = self.execute(message)
+        except KeyboardInterrupt:
+            raise # don't count this as a processing error
         except:
+            # don't reraise, count and continue
             self.lock.acquire() 
             self.errors += 1
             self.lock.release()   
@@ -130,6 +133,9 @@ class Stage(abc.ABC):
         source code of the 'execute' method. This removes the need 
         for the developer to remember to increment a version 
         variable.
+
+        Hashing isn't security sensitive here, it's to identify
+        changes rather than protect information.
         """
         if not self.my_version:
             source = inspect.getsource(self.execute)
