@@ -6,6 +6,13 @@ import uuid
 
 import threading
 
+class ExceptionTemplate(Exception):
+    def __call__(self, *args):
+        return self.__class__(*(self.args + args))
+
+class ValidationError(ExceptionTemplate): pass
+class DependenciesNotMetError(ExceptionTemplate): pass
+
 class Pipeline(object):
 
     def __init__(self, graph, sample_rate=0.001):
@@ -30,15 +37,15 @@ class Pipeline(object):
         except nx.NetworkXNoCycle:
             has_loop = False
         if has_loop:
-            raise TypeError("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
+            raise ValidationError("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
 
         # Every stage node must have a function attribute
         if not all([graph.nodes()[node].get('function') for node in self.all_stages]):
-            raise TypeError("All stages in the Pipeline must have a 'function' attribute")
+            raise ValidationError("All stages in the Pipeline must have a 'function' attribute")
 
         # Every object on the function attribute must have an execute method
         if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_stages]):
-            raise TypeError("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
+            raise ValidationError("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
 
         logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 
@@ -73,9 +80,8 @@ class Pipeline(object):
                     self.paths[respondent].append((next_stage, data_filter))
             
             for next_stage, data_filter in self.paths.get(respondent):
-                if message:
-                    if data_filter(message):
-                        get_queue(next_stage).put(message, False)
+                if message and data_filter(message):
+                    get_queue(next_stage).put(message, False)
 
             response = queue.get()
 
@@ -84,6 +90,13 @@ class Pipeline(object):
 
 
     def init(self, **kwargs):
+
+        def clamp(value, low_bound, high_bound):
+            if value <= low_bound:
+                return low_bound 
+            if value >= high_bound:
+                return high_bound
+            return value
 
         # call all the stage inits, pass the kwargs
         for stage in self.all_stages:
@@ -105,7 +118,7 @@ class Pipeline(object):
             # the other wait.
             thread_count = self.graph.nodes()[stage].get('threads', 1)
             # clamp the number of threads between 1 and 5
-            thread_count = 1 if thread_count < 1 else 5 if thread_count > 5 else thread_count
+            thread_count = clamp(thread_count, 1, 5)
             
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
             for _ in range(thread_count):
@@ -128,7 +141,7 @@ class Pipeline(object):
         """
         """
         if not self.initialized:
-            raise Exception("Pipeline's init method must be called before execute")
+            raise DependenciesNotMetError("Pipeline's init method must be called before execute")
         
         # if the value isn't iterable, put it in a list
         if not type(value).__name__ in ['generator', 'list']:

@@ -12,8 +12,8 @@ baseTracer and using .setHandler
 import datetime, abc
 try:
     from google.cloud import logging
-except:
-    pass
+except ImportError:
+    pass # it's not there, so ignore
 
 class _Trace(object):
     """
