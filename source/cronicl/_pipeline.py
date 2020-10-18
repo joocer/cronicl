@@ -109,7 +109,7 @@ class Pipeline(object):
             thread_count = 1 if thread_count < 1 else 5 if thread_count > 5 else thread_count
             
             stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
-            for i in range(thread_count):
+            for _ in range(thread_count):
                 thread=threading.Thread(target=stage_function.run)
                 thread.daemon = True
                 thread.start()
@@ -118,7 +118,7 @@ class Pipeline(object):
         # Create multiple threads to handle replies
         # The reply_handler has no locks and testing has shown that
         # multiple handlers increases overall pipeline throughput
-        for i in range(2):
+        for _ in range(2):
             reply_handler_thread = threading.Thread(target=self.reply_handler)
             reply_handler_thread.daemon = True
             reply_handler_thread.start()
@@ -141,8 +141,6 @@ class Pipeline(object):
             message = create_new_message(v, sample_rate=self.sample_rate)
             for entry in self.entry_nodes:
                 get_queue(entry).put(message, False)
-
-        return
 
 
     def close(self):

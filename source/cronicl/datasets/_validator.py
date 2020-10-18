@@ -87,7 +87,7 @@ class Validator(object):
 
     def _validate_numeric(self, value):
         try:
-            test = float(value)
+            float(value)
             return True
         except:
             return False
