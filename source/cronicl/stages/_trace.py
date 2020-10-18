@@ -21,8 +21,6 @@ class _Trace(object):
     Implemented as a Singleton.
     """
     _instance = None
-    def __init__(self):
-        pass
 
     def set_handler(self, tracer):
         if not issubclass(tracer.__class__, BaseTracer):
@@ -51,17 +49,12 @@ class BaseTracer(object):
     """
     @abc.abstractmethod
     def emit(self, *args):
-        pass
+        pass # to be overriden
     def close(self):
-        pass
+        pass # placeholder
 
 
-class NullTracer(BaseTracer):
-    """
-    Just ignore everything
-    """
-    def emit(self, *args):
-        pass
+class NullTracer(BaseTracer): pass # Just ignore everything
 
 
 class FileTracer(BaseTracer):
