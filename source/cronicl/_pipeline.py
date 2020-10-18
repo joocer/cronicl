@@ -3,15 +3,9 @@ import networkx as nx
 from .stages import PassThruStage, create_new_message
 from ._queue import get_queue, queues_empty
 import uuid
+from ._exceptions import ValidationError, DependenciesNotMetError
 
 import threading
-
-class ExceptionTemplate(Exception):
-    def __call__(self, *args):
-        return self.__class__(*(self.args + args))
-
-class ValidationError(ExceptionTemplate): pass
-class DependenciesNotMetError(ExceptionTemplate): pass
 
 class Pipeline(object):
 

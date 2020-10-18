@@ -55,7 +55,6 @@ import warnings
 import datetime
 
 
-
 class Validator(object):
 
     def __init__(self, schema, raise_errors = False, strict = False):
@@ -89,7 +88,7 @@ class Validator(object):
         try:
             float(value)
             return True
-        except:
+        except ValueError:
             return False
 
 
@@ -99,7 +98,7 @@ class Validator(object):
                 return True
             datetime.datetime.fromisoformat(value)
             return True
-        except:
+        except ValueError:
             return False
 
 

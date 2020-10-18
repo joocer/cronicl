@@ -10,6 +10,7 @@ except ImportError:
     import json
 import csv
 from pathlib import Path
+from ._datasets import select_fields
 
 
 def to_csv(dataset, filename, columns=['first_row']):
@@ -25,7 +26,7 @@ def to_csv(dataset, filename, columns=['first_row']):
 
         # get the columns from the record
         if columns==['first_row']:
-            columns=record.keys()
+            columns=dataset.keys()
         
         # write the headers
         csv_file = csv.DictWriter(file, fieldnames=columns)
@@ -33,9 +34,9 @@ def to_csv(dataset, filename, columns=['first_row']):
 
         # cycle the rest of the file
         while row:
-            row = _cronicl.select_fields(row, columns)
+            row = select_fields(row, columns)
             csv_file.writerow(row)
-            row = json_list.__next__()
+            row = dataset.__next__()
 
 
 def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
@@ -50,7 +51,7 @@ def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
             return
         try:
             line = next(file_reader)
-        except:
+        except StopIteration:
             return
 
 
@@ -80,8 +81,8 @@ def read_csv_lines(filename):
             yield dict(zip(headers, row))
             try:
                 row = next(datareader)
-            except:
-                row = next(datareader)
+            except StopIteration:
+                row = None
 
 
 def write_jsonl(filename, data):
@@ -89,8 +90,8 @@ def write_jsonl(filename, data):
         for r in data:
             try:
                 jsonfile.write(json.dumps(r) + '\n')
-            except:
-                print(r)
+            except ValueError:
+                jsonfile.write("*****" + '\n')
 
 
 def generator_chunker(gen, chunk_size):
@@ -105,7 +106,7 @@ def generator_chunker(gen, chunk_size):
             idx = 0
         try:
             item = next(gen)
-        except:
+        except StopIteration:
             item = None
     yield chunk[0:idx]
 
