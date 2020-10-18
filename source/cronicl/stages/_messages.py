@@ -43,7 +43,7 @@ class Message(object):
         if self.traced:
             try:
                 record = json.dumps(self.payload)
-            except:
+            except ValueError:
                 record = str(self.payload)
             get_tracer().emit(self.id, stage, version, child, self.initializer, record)
 

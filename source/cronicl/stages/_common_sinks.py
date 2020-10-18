@@ -8,7 +8,7 @@ from ._stage import Stage
 import warnings
 try:
     from google.cloud import bigquery
-except:
+except ImportError:
     pass
 
 #####################################################################
