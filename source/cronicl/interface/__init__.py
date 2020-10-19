@@ -1,1 +1,1 @@
-from .test import api_initializer
+from ._http import api_initializer

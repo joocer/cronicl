@@ -43,7 +43,8 @@ class Pipeline(object):
             raise ValidationError("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
 
 
-        api_thread = threading.Thread(target=api_initializer)
+        # the very start of the HTTP Interface
+        api_thread = threading.Thread(target=api_initializer, args=(self,))
         api_thread.daemon = True
         api_thread.start()
 
@@ -70,8 +71,6 @@ class Pipeline(object):
             respondent, message = response
             # If it's the first time we've seen this respondent, 
             # cache its path.
-            # Invalidating this cache will allow us to update the
-            # DAG in a running pipeline.
             if not self.paths.get(respondent):
                 self.paths[respondent] = []
                 outgoing_edges = self.graph.out_edges(respondent, default=[])
@@ -169,6 +168,13 @@ class Pipeline(object):
         return not queues_empty()
 
 
+    def read_sensors(self):
+        readings = []
+        for stage in self.all_stages:
+            readings.append(self.graph.nodes()[stage].get('function').read_sensor())
+        return readings
+
+
     # adapted from https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
     def tree(self, node, prefix=''):
 
@@ -194,3 +200,11 @@ class Pipeline(object):
             print(' └─ {}'.format(entry))
             t = self.tree(entry, '    ')
             print('\n'.join(t))
+
+
+    def flow(self):
+        result = { }
+        for stage in self.all_stages:
+            contents = [ node[1] for node in self.graph.out_edges(stage, default=[]) ]
+            result[stage] = contents
+        return result

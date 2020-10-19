@@ -132,8 +132,8 @@ def main():
     # read the sensors on the stages, this tells us things like
     # - how many records they processed
     # - hom much time they were active for
-    for node in dag.nodes():
-        print(dag.nodes()[node].get('function').read_sensor())
+    for sensor in flow.read_sensors():
+        print(sensor)
 
 
 
