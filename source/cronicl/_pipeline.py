@@ -10,7 +10,7 @@ import threading
 
 class Pipeline(object):
 
-    def __init__(self, graph, sample_rate=0.001):
+    def __init__(self, graph, sample_rate=0.001, enable_api=True):
         self.threads = []
         self.paths = { }
         self.graph = graph
@@ -42,11 +42,11 @@ class Pipeline(object):
         if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_stages]):
             raise ValidationError("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
 
-
-        # the very start of the HTTP Interface
-        api_thread = threading.Thread(target=api_initializer, args=(self,))
-        api_thread.daemon = True
-        api_thread.start()
+        if enable_api:
+            # the very start of the HTTP Interface
+            api_thread = threading.Thread(target=api_initializer, args=(self,))
+            api_thread.daemon = True
+            api_thread.start()
 
         logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
 

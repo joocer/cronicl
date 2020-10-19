@@ -21,6 +21,7 @@ class _Trace(object):
     Implemented as a Singleton.
     """
     _instance = None
+    tracer = None
 
     def set_handler(self, tracer):
         if not issubclass(tracer.__class__, BaseTracer):
@@ -28,10 +29,12 @@ class _Trace(object):
         self.tracer = tracer
 
     def emit(self, msg_id, stage, version, child, initializer, record):
-        self.tracer.emit(msg_id, stage, version, child, initializer, record)
+        if self.tracer:
+            self.tracer.emit(msg_id, stage, version, child, initializer, record)
 
     def close(self):
-        self.tracer.close()
+        if self.tracer:
+            self.tracer.close()
 
 
 def get_tracer():

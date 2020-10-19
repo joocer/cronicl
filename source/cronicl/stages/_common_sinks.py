@@ -23,7 +23,7 @@ class ScreenSink(Stage):
 
 #####################################################################
 
-class FileSink(Stage):
+class WriteLineToFileSink(Stage):
     """
     Writes records to a file
     """

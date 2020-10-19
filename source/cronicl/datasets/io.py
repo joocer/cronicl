@@ -45,7 +45,7 @@ def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
     file_reader = read_file(filename, chunk_size=chunk_size, delimiter=delimiter)
     line = next(file_reader)
     while line:
-        yield(json.loads(line))
+        yield json.loads(line)
         limit -= 1
         if limit == 0:
             return
@@ -53,7 +53,6 @@ def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
             line = next(file_reader)
         except StopIteration:
             return
-
 
 
 def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
@@ -98,7 +97,7 @@ def generator_chunker(gen, chunk_size):
     idx = 0
     chunk = [None] * chunk_size
     item = next(gen)
-    while item:
+    while True:
         chunk[idx] = item
         idx += 1
         if idx == chunk_size:
@@ -107,8 +106,10 @@ def generator_chunker(gen, chunk_size):
         try:
             item = next(gen)
         except StopIteration:
-            item = None
-    yield chunk[0:idx]
+            print('stop', idx)
+            yield chunk[0:idx]
+            return
+    
 
 def clear_screen():
     print(chr(27)+'[2j')
