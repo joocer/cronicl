@@ -33,5 +33,3 @@ def sanitize_record(record):
         sanitized[key] = value_to_save
 
     return sanitized
-
-print(sanitize_record({ "password": "secret", "card_number": "1234-1234-1234-1234", "post_code": "CH2 2ET" }))
