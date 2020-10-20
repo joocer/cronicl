@@ -1,7 +1,7 @@
 """
-Queues are used to hold messages between stages. 
+Queues are used to hold messages between operations. 
 
-Queues allow the stages to: 
+Queues allow the operations to: 
     a) be loosely coupled and 
     b) run in separate threads
 """

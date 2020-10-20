@@ -4,7 +4,7 @@ Common Sinks
 A set of prewritten data sinks for reuse.
 """
 
-from ._stage import Stage
+from ._operation import Operation
 import warnings
 try:
     from google.cloud import bigquery
@@ -13,7 +13,7 @@ except ImportError:
 
 #####################################################################
 
-class ScreenSink(Stage):
+class ScreenSink(Operation):
     """
     Displays a record to the screen
     """
@@ -23,7 +23,7 @@ class ScreenSink(Stage):
 
 #####################################################################
 
-class WriteLineToFileSink(Stage):
+class WriteLineToFileSink(Operation):
     """
     Writes records to a file
     """
@@ -31,7 +31,7 @@ class WriteLineToFileSink(Stage):
         self.filename = filename
         self.file = open(self.filename, 'w', encoding='utf-8')
         # call the base initializer
-        Stage.__init__(self)
+        Operation.__init__(self)
 
     def execute(self, message):
         self.file.write("{}\n".format(str(message).rstrip('\n|\r')))
@@ -42,7 +42,7 @@ class WriteLineToFileSink(Stage):
 
 #####################################################################
 
-class NullSink(Stage):
+class NullSink(Operation):
     """
     Empty Sink
     """
@@ -51,7 +51,7 @@ class NullSink(Stage):
 
 #####################################################################
 
-class BigQuerySink(Stage):
+class BigQuerySink(Operation):
     """
     Writes an entry to a GCS BigQuery Dataset
     """
@@ -62,7 +62,7 @@ class BigQuerySink(Stage):
         self.bq_dataset = dataset
         self.bq_table = table
         # call the base initializer
-        Stage.__init__(self)
+        Operation.__init__(self)
 
 
     def execute(self, message):

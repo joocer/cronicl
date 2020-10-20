@@ -39,13 +39,13 @@ class Message(object):
         return str(self.payload)
 
 
-    def trace(self, stage='not defined', version='0'*8, child=''):
+    def trace(self, operation='not defined', version='0'*8, child=''):
         if self.traced:
             try:
                 record = json.dumps(self.payload)
             except ValueError:
                 record = str(self.payload)
-            get_tracer().emit(self.id, stage, version, child, self.initializer, record)
+            get_tracer().emit(self.id, operation, version, child, self.initializer, record)
 
 
 def create_new_message(payload, sample_rate=0):
@@ -60,5 +60,5 @@ def create_new_message(payload, sample_rate=0):
     else:
         traced = False
     message = Message(payload=payload, traced=traced)
-    message.trace(stage='Creation', child=message.id)
+    message.trace(operation='Create Message', child=message.id)
     return message

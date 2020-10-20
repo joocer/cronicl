@@ -1,4 +1,4 @@
 from ._pipeline import Pipeline
-from .stages import *
+from .operations import *
 from .timer import Timer
 

@@ -1,5 +1,5 @@
 """
-Stage is a base class which includes most of the heavy-lifting
+Operation is a base class which includes most of the heavy-lifting
 for tracing and auditing.
 
 There are three methods which are safe to override, 'init', 'close'
@@ -17,15 +17,16 @@ except ImportError:
 from ._trace import get_tracer
 import inspect, hashlib
 from .._queue import get_queue
+from .._signals import Signals
 import threading
 
-class Stage(abc.ABC):
+class Operation(abc.ABC):
 
     def __init__(self):
         """
         IF OVERRIDEN, CALL THIS METHOD TOO.
 
-        - like this Stage.__init__(self)
+        - like this Operation.__init__(self)
         """
         self.input_record_count = 0
         self.output_record_count = 0
@@ -33,9 +34,10 @@ class Stage(abc.ABC):
         self.execution_time = 0
         self.first_run = True
         self.my_version = None
-        self.stage_name = ''
+        self.operation_name = ''
         self.lock = threading.Lock()
         self.errors = 0
+
 
     def init(self, **kwargs):
         """
@@ -44,6 +46,7 @@ class Stage(abc.ABC):
         Called once at the start of the pipeline.
         """
         pass
+
 
     def __call__(self, message):
         """
@@ -91,7 +94,7 @@ class Stage(abc.ABC):
         # if the result is None this will fail
         for result in results or []:
             if result is not None:
-                message.trace(stage=task_name, version=self.version(), child=result.id)
+                message.trace(operation=task_name, version=self.version(), child=result.id)
 
                 # messages inherit some values from their parent,
                 # traced and initializer are required to be the
@@ -107,7 +110,7 @@ class Stage(abc.ABC):
                 response.append(result)
 
         if len(response) == 0:
-            message.trace(stage=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000')
+            message.trace(operation=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000')
 
         return response
 
@@ -126,8 +129,8 @@ class Stage(abc.ABC):
         """
         DO NOT OVERRIDE THIS METHOD.
 
-        The version of the stage code, this is intended to facilitate
-        reproducability and auditability of the pipeline.
+        The version of the operation code, this is intended to 
+        facilitate reproducability and auditability of the pipeline.
 
         The version is the last 8 characters of the hash of the 
         source code of the 'execute' method. This removes the need 
@@ -157,11 +160,11 @@ class Stage(abc.ABC):
         """
         IF OVERRIDEN, INCLUDE THIS INFORMATION TOO.
 
-        This reads the auditting information from the stage.
+        This reads the auditting information from the operation.
         """
         return { 
             'process': self.__class__.__name__,
-            'stage_name': self.stage_name,
+            'operation_name': self.operation_name,
             'version': self.version(),
             'input_records': self.input_record_count,
             'output_records': self.output_record_count,
@@ -177,18 +180,18 @@ class Stage(abc.ABC):
         """
         Method to run in a separate threat.
         """
-        logging.debug(f"Thread running {self.stage_name} started")
-        queue = get_queue(self.stage_name)
+        logging.debug(f"Thread running {self.operation_name} started")
+        queue = get_queue(self.operation_name)
         # .get() is bocking, it will wait - which is okay if this
         # function is run in a thread
         message = queue.get()
-        while message:
+        while not message == Signals.TERMINATE:
             results = self(message)
             for result in results:
                 if result is not None:
-                    reply_message = ( self.stage_name, result )
+                    reply_message = ( self.operation_name, result )
                     get_queue('reply').put(reply_message)
             message = queue.get()
         # None is used to exit the method
-        logging.debug(f'TERM {self.stage_name}')
+        logging.debug(f'TERM {self.operation_name}')
 

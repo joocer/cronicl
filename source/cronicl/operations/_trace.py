@@ -14,6 +14,7 @@ try:
     from google.cloud import logging
 except ImportError:
     pass # it's not there, so ignore
+from ._sanitizer import sanitize_record
 
 class _Trace(object):
     """
@@ -28,9 +29,9 @@ class _Trace(object):
             raise TypeError('Tracers must inherit from BaseTracer.')
         self.tracer = tracer
 
-    def emit(self, msg_id, stage, version, child, initializer, record):
+    def emit(self, msg_id, operation, version, child, initializer, record):
         if self.tracer:
-            self.tracer.emit(msg_id, stage, version, child, initializer, record)
+            self.tracer.emit(msg_id, operation, version, child, initializer, record)
 
     def close(self):
         if self.tracer:
@@ -67,15 +68,15 @@ class FileTracer(BaseTracer):
     def __init__(self, sink):
         self.file = open(sink, 'a', encoding='utf8')
 
-    def emit(self, msg_id, stage, version, child, initializer, record):
-        entry = "{} id:{} stage:{:<24} version:{:<16} child:{} init:{} record:{}\n".format(
+    def emit(self, msg_id, operation, version, child, initializer, record):
+        entry = "{} id:{} operation:{:<24} version:{:<16} child:{} init:{} record:{}\n".format(
             datetime.datetime.now().isoformat(), 
             msg_id, 
-            stage[:24], 
+            operation[:24], 
             str(version)[:16],
             child, 
             initializer,
-            record)
+            sanitize_record(record))
         self.file.write(entry)
     
     def close(self):
@@ -89,13 +90,13 @@ class StackDriverTracer(BaseTracer):
     def __init__(self, sink):
         self.logging_client = logging.Client()
         self.logger = self.logging_client.logger(sink)
-    def emit(self, msg_id, stage, version, child, initializer, record):
+    def emit(self, msg_id, operation, version, child, initializer, record):
         entry = {
             "id": msg_id,
-            "stage": stage,
+            "operation": operation,
             "version": str(version)[:16],
             "child": child,
             "initializer": initializer,
-            "record": record
+            "record": sanitize_record(record)
         }
         self.logger.log_struct(entry)

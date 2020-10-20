@@ -1,15 +1,15 @@
 """
-Common Stages
+Common Operations
 
-A set of prewritten stages for reuse.
+A set of prewritten operations for reuse.
 """
 
-from ._stage import Stage
+from ._operation import Operation
 from ..datasets import Validator
 
 #####################################################################
 
-class PassThruStage(Stage):
+class PassThruOperation(Operation):
     """
     Just passes values through.
     """
@@ -18,14 +18,14 @@ class PassThruStage(Stage):
 
 #####################################################################
 
-class ValidatorStage(Stage):
+class ValidatorOperation(Operation):
     """
     Validate against a schema.
     """
     def __init__(self, schema):
         self.validator = Validator(schema)
         self.invalid_records = 0
-        Stage.__init__(self)
+        Operation.__init__(self)
 
     def execute(self, message):
         valid = self.validator(message.payload)
@@ -35,6 +35,6 @@ class ValidatorStage(Stage):
             return [message]
 
     def read_sensor(self):
-        readings = Stage.read_sensor(self)
+        readings = Operation.read_sensor(self)
         readings['invalid_records'] = self.invalid_records
         return readings

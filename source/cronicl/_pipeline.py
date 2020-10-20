@@ -1,10 +1,11 @@
 import time, logging, warnings
 import networkx as nx
-from .stages import PassThruStage, create_new_message
+from .operations import PassThruOperation, create_new_message
 from ._queue import get_queue, queues_empty
 import uuid
 from ._exceptions import ValidationError, DependenciesNotMetError
 from .interface import api_initializer
+from ._signals import Signals
 
 import threading
 
@@ -14,7 +15,7 @@ class Pipeline(object):
         self.threads = []
         self.paths = { }
         self.graph = graph
-        self.all_stages = self.graph.nodes()
+        self.all_operations = self.graph.nodes()
         self.initialized = False
 
         # tracing can be resource heavy, so we trace a sample
@@ -22,7 +23,7 @@ class Pipeline(object):
         self.sample_rate = sample_rate 
 
         # get the entry nodes - the ones with 0 incoming nodes
-        self.entry_nodes = [ node for node in self.all_stages if len(graph.in_edges(node)) == 0 ]
+        self.entry_nodes = [ node for node in self.all_operations if len(graph.in_edges(node)) == 0 ]
 
         # VALIDATE THE GRAPH
         # The pipeline can't be cyclic
@@ -32,14 +33,14 @@ class Pipeline(object):
         except nx.NetworkXNoCycle:
             has_loop = False
         if has_loop:
-            raise ValidationError("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any stages.")
+            raise ValidationError("Pipeline must not be cyclic, if unsure do not have more than on incoming connection on any operations.")
 
-        # Every stage node must have a function attribute
-        if not all([graph.nodes()[node].get('function') for node in self.all_stages]):
-            raise ValidationError("All stages in the Pipeline must have a 'function' attribute")
+        # Every operation node must have a function attribute
+        if not all([graph.nodes()[node].get('function') for node in self.all_operations]):
+            raise ValidationError("All Operations in the Pipeline must have a 'function' attribute.\nIf all Operations have a 'function', check Connector definitions for errors in Operation names.")
 
         # Every object on the function attribute must have an execute method
-        if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_stages]):
+        if not all([hasattr(graph.nodes()[node]['function'], 'execute') for node in self.all_operations]):
             raise ValidationError("The object on all 'function' attributes in a Pipeline must have an 'execute' method")
 
         if enable_api:
@@ -48,14 +49,14 @@ class Pipeline(object):
             api_thread.daemon = True
             api_thread.start()
 
-        logging.debug('loaded a pipeline with {} stages, {} entry point(s)'.format(len(self.all_stages), len(self.entry_nodes)))
+        logging.debug('loaded a pipeline with {} operations, {} entry point(s)'.format(len(self.all_operations), len(self.entry_nodes)))
 
 
     def reply_handler(self):
         """
-        Accept messages on the reply queue, replies attest the stage
-        they have come from, we work out the next stages and put
-        the message onto their queue.
+        Accept messages on the reply queue, replies attest the 
+        operation they have come from, we work out the next 
+        operations and put the message onto their queue.
 
         queue.get() is blocking so this should be run in a separate
         thread.
@@ -67,20 +68,20 @@ class Pipeline(object):
         """
         queue = get_queue('reply')
         response = queue.get()
-        while response:
+        while not response == Signals.TERMINATE:
             respondent, message = response
             # If it's the first time we've seen this respondent, 
             # cache its path.
             if not self.paths.get(respondent):
                 self.paths[respondent] = []
                 outgoing_edges = self.graph.out_edges(respondent, default=[])
-                for this_stage, next_stage in outgoing_edges:
-                    data_filter = self.graph.get_edge_data(respondent, next_stage).get('filter', lambda x: True)
-                    self.paths[respondent].append((next_stage, data_filter))
+                for this_operation, next_operation in outgoing_edges:
+                    data_filter = self.graph.get_edge_data(respondent, next_operation).get('filter', lambda x: True)
+                    self.paths[respondent].append((next_operation, data_filter))
             
-            for next_stage, data_filter in self.paths.get(respondent):
+            for next_operation, data_filter in self.paths.get(respondent):
                 if message and data_filter(message):
-                    get_queue(next_stage).put(message, False)
+                    get_queue(next_operation).put(message, False)
 
             response = queue.get()
 
@@ -97,31 +98,31 @@ class Pipeline(object):
                 return high_bound
             return value
 
-        # call all the stage inits, pass the kwargs
-        for stage in self.all_stages:
-            stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
-            if hasattr(stage_function, 'init'):
-                stage_function.init(**kwargs)
-            # stages need to be told their name
-            stage_function.stage_name = stage 
+        # call all the operation inits, pass the kwargs
+        for operation in self.all_operations:
+            operation_function = self.graph.nodes()[operation].get('function', PassThruOperation())
+            if hasattr(operation_function, 'init'):
+                operation_function.init(**kwargs)
+            # operations need to be told their name
+            operation_function.operation_name = operation 
         self.initialized = True
 
-        for stage in self.all_stages:
-            # Stages can define a number of threads to create.
+        for operation in self.all_operations:
+            # Operations can define a number of threads to create.
             #
-            # This is intended to be used by stages with IO, if the
-            # stage is just working in memory, multi-threading is
-            # not advised as locks are likely to cause slow 
-            # processing. It is important to remember, Python does
-            # not concurrently run threads, one thread runs whilst
-            # the other wait.
-            thread_count = self.graph.nodes()[stage].get('threads', 1)
+            # This is intended to be used by operations with IO, if 
+            # the operation is just working in memory, 
+            # multi-threading is not advised as locks are likely to 
+            # cause slow processing. It is important to remember, 
+            # Python does not concurrently run threads, one thread 
+            # runs whilst the other wait.
+            thread_count = self.graph.nodes()[operation].get('threads', 1)
             # clamp the number of threads between 1 and 5
             thread_count = clamp(thread_count, 1, 5)
             
-            stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
+            operation_function = self.graph.nodes()[operation].get('function', PassThruOperation())
             for _ in range(thread_count):
-                thread=threading.Thread(target=stage_function.run)
+                thread=threading.Thread(target=operation_function.run)
                 thread.daemon = True
                 thread.start()
                 self.threads.append(thread)
@@ -158,10 +159,10 @@ class Pipeline(object):
 
         if self.initialized:
             # call all the closes
-            for stage in self.all_stages:
-                stage_function = self.graph.nodes()[stage].get('function', PassThruStage())
-                if hasattr(stage_function, 'close'):
-                    stage_function.close()
+            for operation in self.all_operations:
+                operation_function = self.graph.nodes()[operation].get('function', PassThruOperation())
+                if hasattr(operation_function, 'close'):
+                    operation_function.close()
 
 
     def running(self):
@@ -170,8 +171,8 @@ class Pipeline(object):
 
     def read_sensors(self):
         readings = []
-        for stage in self.all_stages:
-            readings.append(self.graph.nodes()[stage].get('function').read_sensor())
+        for operation in self.all_operations:
+            readings.append(self.graph.nodes()[operation].get('function').read_sensor())
         return readings
 
 
@@ -204,7 +205,7 @@ class Pipeline(object):
 
     def flow(self):
         result = { }
-        for stage in self.all_stages:
-            contents = [ node[1] for node in self.graph.out_edges(stage, default=[]) ]
-            result[stage] = contents
+        for operation in self.all_operations:
+            contents = [ node[1] for node in self.graph.out_edges(operation, default=[]) ]
+            result[operation] = contents
         return result
