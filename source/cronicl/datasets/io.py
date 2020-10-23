@@ -63,8 +63,9 @@ def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
         carry_forward = ''
         chunk = 'INITIALIZED'
         while len(chunk) > 0:
-            chunk = carry_forward + f.read(chunk_size)
-            lines = chunk.split(delimiter)
+            chunk = f.read(chunk_size)
+            augmented_chunk = carry_forward + chunk
+            lines = augmented_chunk.split(delimiter)
             carry_forward = lines.pop()
             yield from lines
         if carry_forward:
