@@ -76,14 +76,19 @@ class MostFollowersOperation(cronicl.operations.Operation):
 # The pipeline is defined as a networkx graph
 dag = nx.DiGraph()
 
-# The nodes prepresent the operations, each node has a 'function' 
-# attribute for the operation class, there is an optional 'threads' 
-# attribute which will create up to 5 threads to run the operation be 
-# aware of how Python implements multi-threading before using.
+# The nodes prepresent the operations, each node can have the 
+# following attributes set:
+# - function : mandatory, sets the operation class 
+# - threads : optional, sets the number of threads to allocate for
+#       this operation, limited to 5 (default = 1). 
+# - sample_rate : sets a sample rate for this specific operation,
+#       this doesn't affect other sampling.
+# - retry_count : number of times to retry failed operations
+#       (default: 0 - no retry)
 dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" }), threads=1)
 dag.add_node('Extract Followers', function=ExtractFollowersOperation(), threads=1)
 dag.add_node('Most Followers (verified)', function=MostFollowersOperation())
-dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink())
+dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink(), sample_rate=0, retry_count=2)
 
 # The edges represent the connections between the operations. Edges 
 # have an optional 'fileter' attribute which will filter records 
