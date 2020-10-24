@@ -15,27 +15,31 @@ information.
 """
 import re, hashlib
 
-keys_to_sanitize  = ['password', 'pwd', '^pin$', '^pan$', 'cvc']
+keys_to_sanitize  = ['password', 'pwd', '^pin$', '^pan$', '^cvc$']
 values_to_santize = [   "[0-9]{16}",                           # very generic PAN detector
                         "[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}"  # very generic PAN detector
                     ]
 
+def hash_it(value_to_hash):
+    return hashlib.sha256(value_to_hash.encode()).hexdigest()[:16]
+
+# refactored from a set of fors and ifs because apparently it was too
+# hard too read.
 def sanitize_record(record, message_id):
-    if type(record).__name__ in ['dict', 'OrderedDict']:
-        sanitized = { }
-        for key, v in record.items():
-            v = str(v)
-            value_to_save = record.get(key, '')
-            for key_regex in keys_to_sanitize:
-                if re.match(key_regex, key, re.IGNORECASE):
-                    value_to_hash = message_id + v
-                    value_to_save = hashlib.sha256(value_to_hash.encode()).hexdigest()[:16]
-            for value_regex in values_to_santize:
-                if re.match(value_regex, v, re.IGNORECASE):
-                    value_to_hash = message_id + v
-                    value_to_save = hashlib.sha256(value_to_hash.encode()).hexdigest()[:16]
-            sanitized[key] = value_to_save
-        return sanitized
-    else:
-        # we can't sanitize things that aren't dicts
+    # can't sanitize something that isn't a dict
+    if not type(record).__name__ in ['dict', 'OrderedDict']:
         return record
+
+    sanitized = record
+    for key, value in record.items():
+        value = str(value)
+        value_to_hash = message_id + value
+
+        key_expression_hits = [ hash_it(value_to_hash) for expression in keys_to_sanitize if re.match(expression, key, re.IGNORECASE) ]
+        value_expression_hits = [ hash_it(value_to_hash) for expression in values_to_santize if re.match(expression, value, re.IGNORECASE) ]
+        hashed_values = list(set(key_expression_hits + value_expression_hits))
+
+        if len(hashed_values) == 1:
+            sanitized[key] = hashed_values[0]
+        
+    return sanitized
