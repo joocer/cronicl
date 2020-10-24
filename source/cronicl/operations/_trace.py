@@ -14,7 +14,7 @@ try:
     from google.cloud import logging
 except ImportError:
     pass # it's not there, so ignore
-from ._sanitizer import sanitize_record
+
 
 class _Trace(object):
     """
@@ -76,7 +76,7 @@ class FileTracer(BaseTracer):
             str(version)[:16],
             child, 
             initializer,
-            sanitize_record(record))
+            record)
         self.file.write(entry)
     
     def close(self):
@@ -97,6 +97,6 @@ class StackDriverTracer(BaseTracer):
             "version": str(version)[:16],
             "child": child,
             "initializer": initializer,
-            "record": sanitize_record(record)
+            "record": record
         }
         self.logger.log_struct(entry)

@@ -16,6 +16,7 @@ try:
 except ImportError:
     import json
 from ._trace import get_tracer
+from ._sanitizer import sanitize_record
 
 
 class Message(object):
@@ -41,11 +42,12 @@ class Message(object):
 
     def trace(self, operation='not defined', version='0'*8, child='', force=False):
         if self.traced or force:
+            sanitized_record = sanitize_record(self.payload, self.initializer)
             try:
-                record = json.dumps(self.payload)
+                sanitized_record = json.dumps(sanitized_record)
             except ValueError:
-                record = str(self.payload)
-            get_tracer().emit(self.id, operation, version, child, self.initializer, record)
+                sanitized_record = str(sanitized_record)
+            get_tracer().emit(self.id, operation, version, child, self.initializer, sanitized_record)
 
 
 def create_new_message(payload, sample_rate=0):

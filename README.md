@@ -12,11 +12,12 @@ No additional infrastructure needed, if you can run Python, you can process data
 Pipelines can be short-lived (e.g. to process a file) or long-lived (e.g. to process streaming input).
 
 ## Features
--  Programatically define pipeline flow and processing steps
--  Record the number of times each step is executed and execution time
--  Automatic version tracking of processing steps
--  Trace messages through the pipeline (random samples)
+-  Programatically define pipeline flow and processing operations
+-  Record the number of times each operation is executed and execution time
+-  Automatic version tracking of processing operations
+-  Trace messages through the pipeline (random sampling), including santization of sensitive information from trace logs
 -  Monitor via HTTP interface 
+-  Automatic retry of operations
 
 ## Dependencies
 
