@@ -5,3 +5,4 @@ from ._trace import *
 # split out for readability
 from ._common_operations import *
 from ._common_sinks import *
+from ._common_collectors import *

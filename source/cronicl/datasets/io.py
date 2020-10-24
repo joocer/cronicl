@@ -94,22 +94,20 @@ def write_jsonl(filename, data):
                 jsonfile.write("*****" + '\n')
 
 
-def generator_chunker(gen, chunk_size):
-    idx = 0
-    chunk = [None] * chunk_size
-    item = next(gen)
-    while True:
-        chunk[idx] = item
-        idx += 1
-        if idx == chunk_size:
+#https://gist.github.com/nwjlyons/621fabfc0d4c1119b2ad338f615ce4ef#file-chunks-py
+def generator_chunker(generator, chunk_size):
+    """Yield successive chunks from a generator"""
+    chunk = []
+
+    for item in generator:
+        if len(chunk) >= chunk_size:
             yield chunk
-            idx = 0
-        try:
-            item = next(gen)
-        except StopIteration:
-            print('stop', idx)
-            yield chunk[0:idx]
-            return
+            chunk = [item]
+        else:
+            chunk.append(item)
+
+    if chunk:
+        yield chunk
     
 
 def clear_screen():
