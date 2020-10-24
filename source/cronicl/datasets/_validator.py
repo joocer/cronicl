@@ -1,11 +1,11 @@
 """
-
 Basic Validator
 
 Supported Types:
     - string
     - numeric
     - date
+    - boolean
     - other (default, always passes)
 
 Schema is a dictionary
@@ -13,57 +13,18 @@ Schema is a dictionary
     "field_name": "type",
     "field_name": "type"
 }
-
-change to-->
-schema = {
-    fields=[
-        {
-            "name": "initiated",
-            "type": "string",
-            "format": "default",
-            "nullable": false
-        }, 
-        {
-            "name": "hiredate",
-            "type": "date",
-            "format": "default",
-            "nullable": false
-        }, 
-        {
-            "name": "email",
-            "type": "string",
-            "format": "default",
-            "nullable": true
-        }
-    ],
-    allow_additional=true
-}
-
-
-TODO:
-    - raise errors on validation errors
-    - rationality/sanity, e.g. ages should be positive
-        - constraint additions (e.g. numeric [0 - 100] (ensures number is between 0 and 100))
-    - regex validator
-    - fail on missing or excess fields 
-
 """
-
-import re
-from functools import reduce
-import warnings
 import datetime
 
 
 class Validator(object):
 
-    def __init__(self, schema, raise_errors = False, strict = False):
-        self.schema = schema
-        self.raise_errors = raise_errors
+    def __init__(self, schema):
         self._validators = {
             'string'    : self._validate_string,
             'numeric'   : self._validate_numeric,
             'date'      : self._validate_date,
+            'boolean'   : self._validate_boolean,
             'other'     : self._null_validator
         }
         self.validation_rules = { key: self._validators.get(rule, self._null_validator) for key, rule in schema.items() }
@@ -82,6 +43,10 @@ class Validator(object):
 
     def _validate_string(self, value):
         return type(value).__name__ == 'str'
+
+
+    def _validate_boolean(self, value):
+        return str(value).lower in ['true', 'false', 'on', 'off', 'yes', 'no', '0', '1']
 
 
     def _validate_numeric(self, value):
