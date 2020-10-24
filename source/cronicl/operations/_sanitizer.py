@@ -43,6 +43,3 @@ def sanitize_record(record, message_id):
             sanitized[key] = hashed_values[0]
         
     return sanitized
-
-r = { "pan": "1234-1234-1234-1234", "password": "Secret", "head": "broken" }
-print(sanitize_record(r, "123"))
