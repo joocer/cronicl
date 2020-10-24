@@ -13,6 +13,3 @@ class Signals:
     TERMINATE = object()
     EMIT = object()
     RESET = object()
-
-    
-
