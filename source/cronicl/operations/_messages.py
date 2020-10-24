@@ -39,8 +39,8 @@ class Message(object):
         return str(self.payload)
 
 
-    def trace(self, operation='not defined', version='0'*8, child=''):
-        if self.traced:
+    def trace(self, operation='not defined', version='0'*8, child='', force=False):
+        if self.traced or force:
             try:
                 record = json.dumps(self.payload)
             except ValueError:

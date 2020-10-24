@@ -9,7 +9,7 @@ like opening files and caching lookups, 'close' for any tidy-up
 like closing files. 'execute' must return a list of messages.
 """
 
-import time, abc, logging
+import time, abc, logging, random
 try:
     import ujson as json
 except ImportError:
@@ -37,6 +37,8 @@ class Operation(abc.ABC):
         self.operation_name = ''
         self.lock = threading.Lock()
         self.errors = 0
+        self.sample_rate = None
+        self.retry_count = 0
 
 
     def init(self, **kwargs):
@@ -69,17 +71,21 @@ class Operation(abc.ABC):
         traced = message.traced
         start_ns = time.time_ns()
 
-        # the main processing payload
-        try:
-            results = self.execute(message)
-        except KeyboardInterrupt:
-            raise # don't count this as a processing error
-        except:
-            # don't reraise, count and continue
-            self.lock.acquire() 
-            self.errors += 1
-            self.lock.release()   
-            results = []
+        tries = self.retry_count + 1
+        while tries > 0:
+            # the main processing payload
+            try:
+                results = self.execute(message)
+                break # don't retry
+            except KeyboardInterrupt:
+                raise # don't count this as a processing error
+            except:
+                # don't reraise, count and continue
+                self.lock.acquire() 
+                self.errors += 1
+                self.lock.release()
+                tries -= 1   
+                results = []
 
         return_type = type(results).__name__
         if return_type == 'generator' and not return_type == 'list':
@@ -94,7 +100,7 @@ class Operation(abc.ABC):
         # if the result is None this will fail
         for result in results or []:
             if result is not None:
-                message.trace(operation=task_name, version=self.version(), child=result.id)
+                message.trace(operation=task_name, version=self.version(), child=result.id, force=self.force_trace())
 
                 # messages inherit some values from their parent,
                 # traced and initializer are required to be the
@@ -110,7 +116,7 @@ class Operation(abc.ABC):
                 response.append(result)
 
         if len(response) == 0:
-            message.trace(operation=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000')
+            message.trace(operation=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000', force=self.force_trace())
 
         return response
 
@@ -195,3 +201,20 @@ class Operation(abc.ABC):
         # None is used to exit the method
         logging.debug(f'TERM {self.operation_name}')
 
+
+    def force_trace(self):
+        """
+        Operations have have higher tracing frequencies than the
+        flow is set to; this doesn't affect the tracing at any
+        other operation, preventing true tracing through the 
+        pipeline but does increase observability at specific
+        points.
+
+        This does take into account if the message is already
+        being traced.
+
+        This was clamped between 0-1 when set.
+        """
+        if self.sample_rate:
+            return random.randint(1, round(1/self.sample_rate)) == 1
+        return False

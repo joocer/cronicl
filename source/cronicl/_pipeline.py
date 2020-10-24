@@ -1,13 +1,10 @@
-import time, logging, warnings
+import time, logging, warnings, uuid, threading
 import networkx as nx
 from .operations import PassThruOperation, create_new_message
 from ._queue import get_queue, queues_empty
-import uuid
 from ._exceptions import ValidationError, DependenciesNotMetError
 from .interface import api_initializer
 from ._signals import Signals
-
-import threading
 
 class Pipeline(object):
 
@@ -100,11 +97,14 @@ class Pipeline(object):
 
         # call all the operation inits, pass the kwargs
         for operation in self.all_operations:
-            operation_function = self.graph.nodes()[operation].get('function', PassThruOperation())
+            operation_node = self.graph.nodes()[operation]
+            operation_function = operation_node.get('function', PassThruOperation())
             if hasattr(operation_function, 'init'):
                 operation_function.init(**kwargs)
             # operations need to be told their name
             operation_function.operation_name = operation 
+            operation_function.sample_rate = clamp(operation_node.get('sample_rate', 0), 0, 1)
+            operation_function.retry_count = clamp(operation_node.get('retry_count', 0), 0, 10)
         self.initialized = True
 
         for operation in self.all_operations:
