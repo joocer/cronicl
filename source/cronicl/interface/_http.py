@@ -3,7 +3,6 @@ import threading
 
 from .._queue import queue_sizes
 
-port = 8000
 _pipeline = None
 app = Flask(__name__)
 
@@ -20,7 +19,7 @@ def main():
 
     return response
 
-def api_initializer(pipeline):
+def api_initializer(pipeline, port):
     global _pipeline
     _pipeline = pipeline
     app.run(host='0.0.0.0', port=port)

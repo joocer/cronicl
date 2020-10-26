@@ -29,9 +29,9 @@ class _Trace(object):
             raise TypeError('Tracers must inherit from BaseTracer.')
         self.tracer = tracer
 
-    def emit(self, msg_id, operation, version, child, initializer, record):
+    def emit(self, msg_id, execution_start, execution_duration, operation, version, child, initializer, record):
         if self.tracer:
-            self.tracer.emit(msg_id, operation, version, child, initializer, record)
+            self.tracer.emit(msg_id, execution_start, execution_duration, operation, version, child, initializer, record)
 
     def close(self):
         if self.tracer:
@@ -68,12 +68,14 @@ class FileTracer(BaseTracer):
     def __init__(self, sink):
         self.file = open(sink, 'a', encoding='utf8')
 
-    def emit(self, msg_id, operation, version, child, initializer, record):
-        entry = "{} id:{} operation:{:<24} version:{:<16} child:{} init:{} record:{}\n".format(
+    def emit(self, msg_id, execution_start, execution_duration, operation, version, child, initializer, record):
+        entry = "{} id:{} operation:{:<24} version:{:<16} start:{:<22} duration:{:.10f} child:{} init:{} record:{}\n".format(
             datetime.datetime.now().isoformat(), 
             msg_id, 
             operation[:24], 
             str(version)[:16],
+            str(execution_start),
+            execution_duration,
             child, 
             initializer,
             record)
@@ -90,11 +92,13 @@ class StackDriverTracer(BaseTracer):
     def __init__(self, sink):
         self.logging_client = logging.Client()
         self.logger = self.logging_client.logger(sink)
-    def emit(self, msg_id, operation, version, child, initializer, record):
+    def emit(self, msg_id, execution_start, execution_duration, operation, version, child, initializer, record):
         entry = {
             "id": msg_id,
             "operation": operation,
             "version": str(version)[:16],
+            "start": execution_start,
+            "duration": execution_duration,
             "child": child,
             "initializer": initializer,
             "record": record

@@ -40,14 +40,14 @@ class Message(object):
         return str(self.payload)
 
 
-    def trace(self, operation='not defined', version='0'*8, child='', force=False):
+    def trace(self, operation='not defined', version='0'*8, child='', execution_start=0, execution_duration=0, force=False):
         if self.traced or force:
             sanitized_record = sanitize_record(self.payload, self.initializer)
             try:
                 sanitized_record = json.dumps(sanitized_record)
             except ValueError:
                 sanitized_record = str(sanitized_record)
-            get_tracer().emit(self.id, operation, version, child, self.initializer, sanitized_record)
+            get_tracer().emit(self.id, execution_start, execution_duration, operation, version, child, self.initializer, sanitized_record)
 
 
 def create_new_message(payload, sample_rate=0):
