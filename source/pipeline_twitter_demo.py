@@ -12,6 +12,7 @@ JSON File Pump
 """
 
 import cronicl
+from cronicl.utils import Timer
 from cronicl.operations import create_new_message 
 import logging, sys
 import networkx as nx
@@ -118,7 +119,7 @@ def main():
     flow.draw()
 
     # Timing isn't required, here to show it in use
-    with cronicl.timer.Timer('pipeline'):
+    with Timer('pipeline'):
 
         # create a filereader - the chunker is a performance tweak
         file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=-1000000)
