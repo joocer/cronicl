@@ -19,7 +19,7 @@ from ._messages import Message
 import inspect, hashlib
 from .._queue import get_queue
 from .._signals import Signals
-import threading
+from ..utils import ThreadLock
 
 
 class Operation(abc.ABC):
@@ -37,7 +37,6 @@ class Operation(abc.ABC):
         self.first_run = True
         self.my_version = None
         self.operation_name = ''
-        self.lock = threading.Lock()
         self.errors = 0
         self.sample_rate = None
         self.retry_count = 0
@@ -66,9 +65,8 @@ class Operation(abc.ABC):
             logging.debug('first run of: {}'.format(task_name))
 
         # deal with thread-unsafety
-        self.lock.acquire() 
-        self.input_record_count += 1
-        self.lock.release()
+        with ThreadLock():
+            self.input_record_count += 1
 
         traced = message.traced
         execution_start = time.time_ns()
@@ -76,20 +74,18 @@ class Operation(abc.ABC):
         tries = self.retry_count + 1
         while tries > 0:
             # the main processing payload
-
             try:
-                self.lock.acquire() 
-                results = self.execute(message)
+                with ThreadLock():
+                    results = self.execute(message)
                 break # don't retry
             except KeyboardInterrupt:
                 raise # don't count this as a processing error
             except:
                 # don't reraise, count and continue
-                self.errors += 1
+                with ThreadLock():
+                    self.errors += 1
                 tries -= 1   
                 results = []
-            finally:
-                self.lock.release()
 
         result_type = type(results)
         if isinstance(Message, result_type) or results is None:
@@ -102,11 +98,10 @@ class Operation(abc.ABC):
             # we can't deal with everything, fail
             raise TypeError('{} must \'return\' a list of messages (list can be 1 element long)'.format(task_name))
 
-        # deal with thread-unsafety
-        self.lock.acquire() 
         execution_duration = time.time_ns() - execution_start
-        self.execution_time += execution_duration
-        self.lock.release()
+        # deal with thread-unsafety
+        with ThreadLock():
+            self.execution_time += execution_duration
 
         response = []
         # if the result is None this will fail
@@ -121,9 +116,8 @@ class Operation(abc.ABC):
                 result.initializer = message.initializer
 
                 # deal with thread-unsafety
-                self.lock.acquire() 
-                self.output_record_count += 1
-                self.lock.release()
+                with ThreadLock():
+                    self.output_record_count += 1
 
                 response.append(result)
 
