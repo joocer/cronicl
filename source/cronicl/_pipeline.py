@@ -8,7 +8,7 @@ from ._signals import Signals
 
 class Pipeline(object):
 
-    def __init__(self, graph, sample_rate=0.001, enable_api=True):
+    def __init__(self, graph, sample_rate=0.001, enable_api=True, api_port=8000):
         self.threads = []
         self.paths = { }
         self.graph = graph
@@ -42,7 +42,7 @@ class Pipeline(object):
 
         if enable_api:
             # the very start of the HTTP Interface
-            api_thread = threading.Thread(target=api_initializer, args=(self,))
+            api_thread = threading.Thread(target=api_initializer, args=(self,api_port))
             api_thread.daemon = True
             api_thread.start()
 

@@ -87,16 +87,16 @@ dag = nx.DiGraph()
 #       (default: 0 - no retry)
 dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" }), threads=1)
 dag.add_node('Extract Followers', function=ExtractFollowersOperation(), threads=1)
-dag.add_node('Collect Max Followers', function=cronicl.operations.MaxCollector(['user', 'followers']))
+#dag.add_node('Collect Max Followers', function=cronicl.operations.MaxCollector(['user', 'followers']), retry_count=1)
 dag.add_node('Most Followers (verified)', function=MostFollowersOperation())
-dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink(), sample_rate=1, retry_count=2)
+dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink(), retry_count=1)
 
 # The edges represent the connections between the operations. Edges 
-# have an optional 'fileter' attribute which will filter records 
+# have an optional 'filter' attribute which will filter records 
 # being sent to the next operation.
 dag.add_edge('Data Validation', 'Extract Followers')
 dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.payload.get('verified') == True )
-dag.add_edge('Extract Followers', 'Collect Max Followers')
+#dag.add_edge('Extract Followers', 'Collect Max Followers')
 dag.add_edge('Most Followers (verified)', 'Screen Sink')
 
 
@@ -108,7 +108,7 @@ def main():
 
     # create a pipeline, pass it the graph we created, set the
     # trace sampling off
-    flow = cronicl.Pipeline(dag, sample_rate=0.1)
+    flow = cronicl.Pipeline(dag, sample_rate=0.0, enable_api=True, api_port=8001)
 
     # run the initialization routines, this also runs the operation
     # inits
@@ -121,7 +121,7 @@ def main():
     with cronicl.timer.Timer('pipeline'):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=1000000)
+        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=-1000000)
         for chunk in cronicl.datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual 

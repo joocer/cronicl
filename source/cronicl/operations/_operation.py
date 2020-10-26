@@ -15,10 +15,12 @@ try:
 except ImportError:
     import json
 from ._trace import get_tracer
+from ._messages import Message
 import inspect, hashlib
 from .._queue import get_queue
 from .._signals import Signals
 import threading
+
 
 class Operation(abc.ABC):
 
@@ -69,38 +71,48 @@ class Operation(abc.ABC):
         self.lock.release()
 
         traced = message.traced
-        start_ns = time.time_ns()
+        execution_start = time.time_ns()
 
         tries = self.retry_count + 1
         while tries > 0:
             # the main processing payload
+
             try:
+                self.lock.acquire() 
                 results = self.execute(message)
                 break # don't retry
             except KeyboardInterrupt:
                 raise # don't count this as a processing error
             except:
                 # don't reraise, count and continue
-                self.lock.acquire() 
                 self.errors += 1
-                self.lock.release()
                 tries -= 1   
                 results = []
+            finally:
+                self.lock.release()
 
-        return_type = type(results).__name__
-        if return_type == 'generator' and not return_type == 'list':
+        result_type = type(results)
+        if isinstance(Message, result_type) or results is None:
+            # the user forgot to put the result result in a list
+            results = [results]
+        elif result_type.__name__ == 'generator':
+            # evaluate the full generator
+            results = list(results)
+        elif not result_type.__name__ == 'list':
+            # we can't deal with everything, fail
             raise TypeError('{} must \'return\' a list of messages (list can be 1 element long)'.format(task_name))
 
         # deal with thread-unsafety
         self.lock.acquire() 
-        self.execution_time += time.time_ns() - start_ns
+        execution_duration = time.time_ns() - execution_start
+        self.execution_time += execution_duration
         self.lock.release()
 
         response = []
         # if the result is None this will fail
         for result in results or []:
             if result is not None:
-                message.trace(operation=task_name, version=self.version(), child=result.id, force=self.force_trace())
+                message.trace(operation=task_name, version=self.version(), child=result.id, execution_start=execution_start, execution_duration=execution_duration / 1e9, force=self.force_trace())
 
                 # messages inherit some values from their parent,
                 # traced and initializer are required to be the
@@ -116,7 +128,7 @@ class Operation(abc.ABC):
                 response.append(result)
 
         if len(response) == 0:
-            message.trace(operation=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000', force=self.force_trace())
+            message.trace(operation=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000', execution_start=execution_start, execution_duration=execution_duration / 1e9, force=self.force_trace())
 
         return response
 
