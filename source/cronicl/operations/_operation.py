@@ -32,14 +32,14 @@ class Operation(abc.ABC):
         """
         self.input_record_count = 0
         self.output_record_count = 0
-        self.first_seen = 0
+        self.first_seen = None
         self.execution_time = 0
-        self.first_run = True
         self.my_version = None
         self.operation_name = ''
         self.errors = 0
         self.sample_rate = None
         self.retry_count = 0
+        self.retry_delay = 0
 
 
     def init(self, **kwargs):
@@ -59,9 +59,8 @@ class Operation(abc.ABC):
         """
         task_name = self.__class__.__name__
 
-        if self.first_run:
-            self.first_run = False
-            self.first_seen = time.time()
+        if not self.first_seen:
+            self.first_seen = time.time_ns()
             logging.debug('first run of: {}'.format(task_name))
 
         # deal with thread-unsafety
@@ -84,6 +83,8 @@ class Operation(abc.ABC):
                 # don't reraise, count and continue
                 with ThreadLock():
                     self.errors += 1
+                if tries > 0:
+                    time.sleep(self.retry_delay)
                 tries -= 1   
                 results = []
 

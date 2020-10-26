@@ -105,6 +105,7 @@ class Pipeline(object):
             operation_function.operation_name = operation 
             operation_function.sample_rate = clamp(operation_node.get('sample_rate', 0), 0, 1)
             operation_function.retry_count = clamp(operation_node.get('retry_count', 0), 0, 10)
+            operation_function.retry_delay = clamp(operation_node.get('retry_delay', 0), 0, 300)
         self.initialized = True
 
         for operation in self.all_operations:

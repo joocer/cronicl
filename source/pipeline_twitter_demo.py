@@ -84,13 +84,15 @@ dag = nx.DiGraph()
 #       this operation, limited to 5 (default = 1). 
 # - sample_rate : sets a sample rate for this specific operation,
 #       this doesn't affect other sampling.
-# - retry_count : number of times to retry failed operations
-#       (default: 0 - no retry)
+# - retry_count : number of times to retry failed operations, limited
+#       to 10 (default = 0)
+# - retry_delay : number of seconds to wait between retries, limited
+#       to 300 seconds (default = 0) 
 dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" }), threads=1)
 dag.add_node('Extract Followers', function=ExtractFollowersOperation(), threads=1)
 #dag.add_node('Collect Max Followers', function=cronicl.operations.MaxCollector(['user', 'followers']), retry_count=1)
 dag.add_node('Most Followers (verified)', function=MostFollowersOperation())
-dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink(), retry_count=1)
+dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink(), retry_count=1, retry_delay=100)
 
 # The edges represent the connections between the operations. Edges 
 # have an optional 'filter' attribute which will filter records 
@@ -122,7 +124,7 @@ def main():
     with Timer('pipeline'):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=-1000000)
+        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=1000)
         for chunk in cronicl.datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual 
