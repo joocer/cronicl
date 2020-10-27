@@ -17,9 +17,7 @@ except ImportError:
 from ._trace import get_tracer
 from ._messages import Message
 import inspect, hashlib
-from .._queue import get_queue
-from .._signals import Signals
-from ..utils import ThreadLock
+from ..utils import ThreadLock, get_queue, Signals
 
 
 class Operation(abc.ABC):
@@ -108,7 +106,7 @@ class Operation(abc.ABC):
         # if the result is None this will fail
         for result in results or []:
             if result is not None:
-                message.trace(operation=task_name, version=self.version(), child=result.id, execution_start=execution_start, execution_duration=execution_duration / 1e9, force=self.force_trace())
+                message.trace(operation=task_name, version=self.version(), child=result.id, execution_start=execution_start / 1e9, execution_duration=execution_duration / 1e9, force=self.force_trace())
 
                 # messages inherit some values from their parent,
                 # traced and initializer are required to be the
@@ -123,7 +121,7 @@ class Operation(abc.ABC):
                 response.append(result)
 
         if len(response) == 0:
-            message.trace(operation=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000', execution_start=execution_start, execution_duration=execution_duration / 1e9, force=self.force_trace())
+            message.trace(operation=task_name, version=self.version(), child='00000000-0000-0000-0000-000000000000', execution_start=execution_start / 1e9, execution_duration=execution_duration / 1e9, force=self.force_trace())
 
         return response
 

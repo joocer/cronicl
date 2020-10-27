@@ -1,2 +1,4 @@
-from .thread_lock import ThreadLock
-from .timer import Timer
+from ._threadlock import ThreadLock
+from ._timer import Timer
+from ._signals import Signals
+from ._queue import *

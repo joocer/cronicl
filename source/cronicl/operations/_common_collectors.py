@@ -5,7 +5,7 @@ A set of collectors for reuse
 """
 
 from ._operation import Operation
-from .._signals import Signals
+from ..utils import Signals
 from ._messages import create_new_message
 import abc
 
