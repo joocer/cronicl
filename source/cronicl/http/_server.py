@@ -1,19 +1,18 @@
 from flask import Flask                                                         
-import threading
 
-from .._queue import queue_sizes
+
+from ..utils import queue_sizes
+from ..utils import ThreadLock
 
 _pipeline = None
 app = Flask(__name__)
 
 @app.route("/")
 def main():
-    lock = threading.Lock()
-    lock.acquire()
-    connections = queue_sizes()
-    stages = _pipeline.read_sensors()
-    flow = _pipeline.flow()
-    lock.release()
+    with ThreadLock():
+        connections = queue_sizes()
+        stages = _pipeline.read_sensors()
+        flow = _pipeline.flow()
 
     response = { "stages" : stages, "connections" : connections, "flow" : flow }
 

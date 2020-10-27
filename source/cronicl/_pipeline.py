@@ -1,10 +1,11 @@
 import time, logging, warnings, uuid, threading
 import networkx as nx
 from .operations import PassThruOperation, create_new_message
-from ._queue import get_queue, queues_empty
-from ._exceptions import ValidationError, DependenciesNotMetError
-from .interface import api_initializer
-from ._signals import Signals
+from .utils import get_queue, queues_empty
+from .utils import Signals
+from .exceptions import ValidationError, DependenciesNotMetError
+from .http import api_initializer
+
 
 class Pipeline(object):
 

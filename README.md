@@ -1,4 +1,4 @@
-# cronicl: data workflows.
+# cronicl: data pipelines.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/joocer/danvers/blob/master/LICENSE)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=joocer_cronicl&metric=security_rating)](https://sonarcloud.io/dashboard?id=joocer_cronicl)
