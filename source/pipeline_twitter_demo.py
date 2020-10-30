@@ -90,20 +90,32 @@ dag = nx.DiGraph()
 #       to 10 (default = 0)
 # - retry_delay : number of seconds to wait between retries, limited
 #       to 300 seconds (default = 0) 
+
 dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" }), threads=1)
 dag.add_node('Extract Followers', function=ExtractFollowersOperation(), threads=1)
-#dag.add_node('Collect Max Followers', function=cronicl.operations.MaxCollector(['user', 'followers']), retry_count=1)
 dag.add_node('Most Followers (verified)', function=MostFollowersOperation())
 dag.add_node('Screen Sink', function=cronicl.operations.WriteToScreenOperation(), retry_count=1, retry_delay=100)
 
 # The edges represent the connections between the operations. Edges 
 # have an optional 'filter' attribute which will filter records 
 # being sent to the next operation.
+
 dag.add_edge('Data Validation', 'Extract Followers')
 dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.payload.get('verified') == True )
-#dag.add_edge('Extract Followers', 'Collect Max Followers')
 dag.add_edge('Most Followers (verified)', 'Screen Sink')
 
+"""
+This DAG could also be defined using the shorthand > notation. This
+is quicker to define but options such as retries, connector filters 
+and threads are threading options are unavailable.
+
+data_validation = cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" })
+extract_followers = ExtractFollowersOperation()
+most_followers = MostFollowersOperation()
+screen_sink = cronicl.operations.WriteToScreenOperation()
+
+dag = data_validation > extract_followers > most_followers > screen_sink
+"""
 
 def main():
     # Tell the tracer to use the FileTracer, we don't use this 
@@ -126,7 +138,7 @@ def main():
     with Timer('pipeline'):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = datasets.io.read_jsonl("small.jsonl", limit=1000)
+        file_reader = datasets.io.read_jsonl("small.jsonl", limit=1000000)
         for chunk in datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual 
