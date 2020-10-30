@@ -45,6 +45,7 @@ class BaseOperation(abc.ABC):
         self.sample_rate = None
         self.retry_count = 0
         self.retry_delay = 0
+        self.graph = None
 
 
     def init(self, **kwargs):
@@ -231,3 +232,25 @@ class BaseOperation(abc.ABC):
         if self.sample_rate:
             return random.randint(1, round(1/self.sample_rate)) == 1
         return False
+
+
+    def __gt__(self, target):
+        """
+        Smart DAG builder. This allows simple DAGs to be defined
+        using the following syntax:
+
+        Op1 > Op2 > Op3
+        """
+
+        import networkx as nx
+        if self.graph:
+            graph = self.graph
+        else:
+            graph = nx.DiGraph()
+        graph.add_node(target.__class__.__name__, function=target)
+        graph.add_node(self.__class__.__name__, function=self)
+        graph.add_edge(self.__class__.__name__, target.__class__.__name__)
+        target.graph = graph
+        del self.graph
+
+        return graph
