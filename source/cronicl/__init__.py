@@ -1,3 +1,2 @@
-from ._pipeline import Pipeline
-from .operations import *
-
+from .models.BaseOperation import BaseOperation
+from .models.Pipeline import Pipeline

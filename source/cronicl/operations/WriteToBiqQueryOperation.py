@@ -1,57 +1,12 @@
-"""
-Common Sinks
-
-A set of prewritten data sinks for reuse.
-"""
-
-from ._operation import Operation
+from ..models.BaseOperation import BaseOperation
 import warnings
 try:
     from google.cloud import bigquery
 except ImportError:
     pass
 
-#####################################################################
 
-class ScreenSink(Operation):
-    """
-    Displays a record to the screen
-    """
-    def execute(self, message):
-        print('>>>', message)
-        return [message]
-
-#####################################################################
-
-class WriteLineToFileSink(Operation):
-    """
-    Writes records to a file
-    """
-    def __init__(self, filename):
-        self.filename = filename
-        self.file = open(self.filename, 'w', encoding='utf-8')
-        # call the base initializer
-        Operation.__init__(self)
-
-    def execute(self, message):
-        self.file.write("{}\n".format(str(message).rstrip('\n|\r')))
-        return [message]
-
-    def close(self):
-        self.file.close()
-
-#####################################################################
-
-class NullSink(Operation):
-    """
-    Empty Sink
-    """
-    def execute(self, message):
-        return [message]
-
-#####################################################################
-
-class BigQuerySink(Operation):
+class WriteToBiqQueryOperation(BaseOperation):
     """
     Writes an entry to a GCS BigQuery Dataset
     """
@@ -62,7 +17,7 @@ class BigQuerySink(Operation):
         self.bq_dataset = dataset
         self.bq_table = table
         # call the base initializer
-        Operation.__init__(self)
+        super.__init__()
 
 
     def execute(self, message):
