@@ -9,7 +9,8 @@ Tracers are pluggable, you can write a new tracer by inheritting
 baseTracer and using .setHandler
 """
 
-import datetime, abc
+import datetime
+import abc
 try:
     from google.cloud import logging
 except ImportError:

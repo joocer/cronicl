@@ -1,10 +1,16 @@
-import time, logging, warnings, uuid, threading
+import time
+import logging
+import warnings
+import uuid
+import threading
 import networkx as nx
-from .operations import PassThruOperation, create_new_message
-from .utils import get_queue, queues_empty
-from .utils import Signals
-from .exceptions import ValidationError, DependenciesNotMetError
-from .http import api_initializer
+
+from ..operations import NullOperation
+from .Message import create_new_message
+from .Queue import get_queue, queues_empty
+from ..utils import Signals
+from ..exceptions import ValidationError, DependenciesNotMetError
+from ..http import api_initializer
 
 
 class Pipeline(object):
@@ -99,7 +105,7 @@ class Pipeline(object):
         # call all the operation inits, pass the kwargs
         for operation in self.all_operations:
             operation_node = self.graph.nodes()[operation]
-            operation_function = operation_node.get('function', PassThruOperation())
+            operation_function = operation_node.get('function', NullOperation())
             if hasattr(operation_function, 'init'):
                 operation_function.init(**kwargs)
             # operations need to be told their name
@@ -122,7 +128,7 @@ class Pipeline(object):
             # clamp the number of threads between 1 and 5
             thread_count = clamp(thread_count, 1, 5)
             
-            operation_function = self.graph.nodes()[operation].get('function', PassThruOperation())
+            operation_function = self.graph.nodes()[operation].get('function', NullOperation())
             for _ in range(thread_count):
                 thread=threading.Thread(target=operation_function.run)
                 thread.daemon = True
@@ -162,7 +168,7 @@ class Pipeline(object):
         if self.initialized:
             # call all the closes
             for operation in self.all_operations:
-                operation_function = self.graph.nodes()[operation].get('function', PassThruOperation())
+                operation_function = self.graph.nodes()[operation].get('function', NullOperation())
                 if hasattr(operation_function, 'close'):
                     operation_function.close()
 

@@ -13,7 +13,8 @@ sanitize strings, which could contain sensitive information
 We use the message id as a salt to further protect sensitive 
 information.
 """
-import re, hashlib
+import re
+import hashlib
 
 keys_to_sanitize  = ['password', 'pwd', '^pin$', '^pan$', '^cvc$']
 values_to_santize = [   "[0-9]{16}",                           # very generic PAN detector

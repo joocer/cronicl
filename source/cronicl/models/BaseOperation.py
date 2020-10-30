@@ -9,24 +9,31 @@ like opening files and caching lookups, 'close' for any tidy-up
 like closing files. 'execute' must return a list of messages.
 """
 
-import time, abc, logging, random
+import time
+import abc
+import logging
+import random
+import inspect
+import hashlib
+
+from ..utils.Trace import get_tracer
+from ..models import Message
+from ..models.Queue import get_queue
+from ..utils import ThreadLock, Signals
+
 try:
     import ujson as json
 except ImportError:
     import json
-from ._trace import get_tracer
-from ._messages import Message
-import inspect, hashlib
-from ..utils import ThreadLock, get_queue, Signals
 
 
-class Operation(abc.ABC):
+class BaseOperation(abc.ABC):
 
     def __init__(self):
         """
         IF OVERRIDEN, CALL THIS METHOD TOO.
 
-        - like this Operation.__init__(self)
+        - like this super.__init__()
         """
         self.input_record_count = 0
         self.output_record_count = 0
@@ -86,6 +93,7 @@ class Operation(abc.ABC):
                 tries -= 1   
                 results = []
 
+        # let's forgive the user for some things
         result_type = type(results)
         if isinstance(Message, result_type) or results is None:
             # the user forgot to put the result result in a list
@@ -94,7 +102,7 @@ class Operation(abc.ABC):
             # evaluate the full generator
             results = list(results)
         elif not result_type.__name__ == 'list':
-            # we can't deal with everything, fail
+            # we can't deal with everything, if we're here - fail
             raise TypeError('{} must \'return\' a list of messages (list can be 1 element long)'.format(task_name))
 
         execution_duration = time.time_ns() - execution_start
@@ -134,7 +142,7 @@ class Operation(abc.ABC):
 
         Called once for every incoming record
         """
-        pass
+        raise NotImplementedError("This method must be overriden.")
 
     def version(self):
         """

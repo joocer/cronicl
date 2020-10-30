@@ -1,0 +1,3 @@
+from .CroniclExceptionTemplate import CroniclExceptionTemplate
+
+class ValidationError(CroniclExceptionTemplate): pass

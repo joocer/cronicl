@@ -6,7 +6,9 @@ Queues allow the operations to:
     b) run in separate threads
 """
 
-import queue, logging, re
+import queue
+import logging
+import re
 
 __queues = {}
 

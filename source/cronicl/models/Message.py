@@ -10,14 +10,17 @@ information separate to the payload to be sent with the payload.
 """
 
 # we're using to select random samples so prng is good enough
-import uuid, logging, random 
+import uuid
+import logging
+import random 
+
+from ..utils.Trace import get_tracer
+from ..utils.Sanitizer import sanitize_record
+
 try:
     import ujson as json
 except ImportError:
     import json
-from ._trace import get_tracer
-from ._sanitizer import sanitize_record
-
 
 class Message(object):
 

@@ -13,14 +13,16 @@ JSON File Pump
 
 import cronicl
 from cronicl.utils import Timer
-from cronicl.operations import create_new_message 
+from cronicl.utils.Trace import get_tracer
+from cronicl.models.Message import create_new_message 
+import datasets.io
 import logging, sys
 import networkx as nx
 import time
 
 #logging.basicConfig( level=logging.DEBUG, format="%(created)-15s %(message)s")
 
-class ExtractFollowersOperation(cronicl.operations.Operation):
+class ExtractFollowersOperation(cronicl.BaseOperation):
     """
     Processing operation, unique to this pipeline.
 
@@ -45,7 +47,7 @@ class ExtractFollowersOperation(cronicl.operations.Operation):
         return [message]
 
 
-class MostFollowersOperation(cronicl.operations.Operation):
+class MostFollowersOperation(cronicl.BaseOperation):
     """
     Another processing operation unique to this pipeline.
 
@@ -92,7 +94,7 @@ dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({
 dag.add_node('Extract Followers', function=ExtractFollowersOperation(), threads=1)
 #dag.add_node('Collect Max Followers', function=cronicl.operations.MaxCollector(['user', 'followers']), retry_count=1)
 dag.add_node('Most Followers (verified)', function=MostFollowersOperation())
-dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink(), retry_count=1, retry_delay=100)
+dag.add_node('Screen Sink', function=cronicl.operations.WriteToScreenOperation(), retry_count=1, retry_delay=100)
 
 # The edges represent the connections between the operations. Edges 
 # have an optional 'filter' attribute which will filter records 
@@ -107,7 +109,7 @@ def main():
     # Tell the tracer to use the FileTracer, we don't use this 
     # because we're setting the sample rate to zero, this is just
     # to show how it is done.
-    cronicl.get_tracer().set_handler(cronicl.FileTracer('cronicl_trace.log'))
+    get_tracer().set_handler(cronicl.utils.Trace.FileTracer('cronicl_trace.log'))
 
     # create a pipeline, pass it the graph we created, set the
     # trace sampling off
@@ -124,8 +126,8 @@ def main():
     with Timer('pipeline'):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = cronicl.datasets.io.read_jsonl('small.jsonl', limit=1000)
-        for chunk in cronicl.datasets.io.generator_chunker(file_reader, 1000):
+        file_reader = datasets.io.read_jsonl("small.jsonl", limit=1000)
+        for chunk in datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual 
             # records
@@ -138,7 +140,7 @@ def main():
 
     # close the pipeline and the tracer
     flow.close()
-    cronicl.get_tracer().close()
+    get_tracer().close()
 
     # read the sensors on the operations, this tells us things like
     # - how many records they processed
