@@ -1,8 +1,8 @@
 from flask import Flask                                                         
 
 
-from ..models.Queue import queue_sizes
-from ..utils.ThreadLock import ThreadLock
+from ..models.queue import queue_sizes
+from ..utils.threadlock import ThreadLock
 
 _pipeline = None
 app = Flask(__name__)

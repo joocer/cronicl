@@ -16,9 +16,9 @@ import random
 import inspect
 import hashlib
 
-from ..utils.Trace import get_tracer
+from ..utils.trace import get_tracer
 from ..models import Message
-from ..models.Queue import get_queue
+from ..models.queue import get_queue
 from ..utils import ThreadLock, Signals
 
 try:

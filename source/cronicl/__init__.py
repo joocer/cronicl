@@ -1,2 +1,2 @@
-from .models.BaseOperation import BaseOperation
-from .models.Pipeline import Pipeline
+from .models.baseoperation import BaseOperation
+from .models.pipeline import Pipeline

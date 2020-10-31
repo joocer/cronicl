@@ -1,4 +1,4 @@
-from ..models.BaseOperation import BaseOperation
+from ..models.baseoperation import BaseOperation
 
 class NullOperation(BaseOperation):
     """

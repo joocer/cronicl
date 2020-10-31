@@ -1,4 +1,4 @@
-from ..models.BaseOperation import BaseOperation
+from ..models.baseoperation import BaseOperation
 import warnings
 try:
     from google.cloud import bigquery

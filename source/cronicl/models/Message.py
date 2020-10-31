@@ -14,8 +14,8 @@ import uuid
 import logging
 import random 
 
-from ..utils.Trace import get_tracer
-from ..utils.Sanitizer import sanitize_record
+from ..utils.trace import get_tracer
+from ..utils.sanitizer import sanitize_record
 
 try:
     import ujson as json
