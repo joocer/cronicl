@@ -1,4 +1,10 @@
-from ..models.BaseOperation import BaseOperation
+"""
+Write to Screen
+
+Simple operator which prints text to the screen.
+"""
+
+from ..models.baseoperation import BaseOperation
 
 class WriteToScreenOperation(BaseOperation):
     """

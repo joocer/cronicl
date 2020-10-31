@@ -5,6 +5,7 @@ A demonstration flow.
 """
 
 import cronicl
+import datasets
 import logging, sys
 import networkx as nx
 import time
@@ -17,7 +18,7 @@ filename = 'temp.txt'
 
 # The pipeline is defined as a networkx graph
 dag = nx.DiGraph()
-dag.add_node('Screen Sink', function=cronicl.operations.ScreenSink())
+dag.add_node('Screen Sink', function=cronicl.operations.WriteToScreenOperation())
 
 def main():
     # create a pipeline
@@ -27,12 +28,11 @@ def main():
     # inits
     flow.init()
 
-
     while not os.path.isfile(filename):
         time.sleep(1)
 
-    file_reader = cronicl.datasets.io.read_file(filename)
-    for chunk in cronicl.datasets.io.generator_chunker(file_reader, 1000):
+    file_reader = datasets.io.read_file(filename)
+    for chunk in datasets.io.generator_chunker(file_reader, 1000):
         flow.execute(chunk)
 
     while flow.running():

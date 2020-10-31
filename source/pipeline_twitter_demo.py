@@ -13,8 +13,8 @@ JSON File Pump
 
 import cronicl
 from cronicl.utils import Timer
-from cronicl.utils.Trace import get_tracer
-from cronicl.models.Message import create_new_message 
+from cronicl.utils.trace import get_tracer
+from cronicl.models.message import create_new_message 
 import datasets.io
 import logging, sys
 import networkx as nx
@@ -76,20 +76,21 @@ class MostFollowersOperation(cronicl.BaseOperation):
             return [None]
 
 
-# The pipeline is defined as a networkx graph
-dag = nx.DiGraph()
+"""
+The nodes prepresent the operations, each node can have the 
+following attributes set:
+ - function : mandatory, sets the operation class 
+ - threads : optional, sets the number of threads to allocate for
+       this operation, limited to 5 (default = 1). 
+ - sample_rate : sets a sample rate for this specific operation,
+       this doesn't affect other sampling.
+ - retry_count : number of times to retry failed operations, limited
+       to 10 (default = 0)
+ - retry_delay : number of seconds to wait between retries, limited
+       to 300 seconds (default = 0) 
+"""
 
-# The nodes prepresent the operations, each node can have the 
-# following attributes set:
-# - function : mandatory, sets the operation class 
-# - threads : optional, sets the number of threads to allocate for
-#       this operation, limited to 5 (default = 1). 
-# - sample_rate : sets a sample rate for this specific operation,
-#       this doesn't affect other sampling.
-# - retry_count : number of times to retry failed operations, limited
-#       to 10 (default = 0)
-# - retry_delay : number of seconds to wait between retries, limited
-#       to 300 seconds (default = 0) 
+dag = nx.DiGraph()
 
 dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" }), threads=1)
 dag.add_node('Extract Followers', function=ExtractFollowersOperation(), threads=1)
@@ -109,6 +110,7 @@ This DAG could also be defined using the shorthand > notation. This
 is quicker to define but options such as retries, connector filters 
 and threads are threading options are unavailable.
 
+
 data_validation = cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" })
 extract_followers = ExtractFollowersOperation()
 most_followers = MostFollowersOperation()
@@ -121,7 +123,7 @@ def main():
     # Tell the tracer to use the FileTracer, we don't use this 
     # because we're setting the sample rate to zero, this is just
     # to show how it is done.
-    get_tracer().set_handler(cronicl.utils.Trace.FileTracer('cronicl_trace.log'))
+    get_tracer().set_handler(cronicl.utils.trace.FileTracer('cronicl_trace.log'))
 
     # create a pipeline, pass it the graph we created, set the
     # trace sampling off
