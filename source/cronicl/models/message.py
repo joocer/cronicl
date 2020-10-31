@@ -14,7 +14,7 @@ import uuid
 import logging
 import random 
 
-from ..utils.trace import get_tracer
+from ..models.basetracer import get_tracer
 from ..utils.sanitizer import sanitize_record
 from ..utils.serialization import dict_to_json
 

@@ -16,7 +16,7 @@ import random
 import inspect
 import hashlib
 
-from ..utils.trace import get_tracer
+from ..models.basetracer import get_tracer
 from ..models import Message
 from ..models.queue import get_queue
 from ..utils import ThreadLock, Signals

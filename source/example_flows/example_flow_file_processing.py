@@ -17,8 +17,9 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import cronicl
 from cronicl.utils import Timer
-from cronicl.utils.trace import get_tracer
+from cronicl.models.basetracer import get_tracer
 from cronicl.models.message import create_new_message 
+from cronicl.tracers import FileTracer
 import datasets.io
 import logging, sys
 import networkx as nx
@@ -132,7 +133,7 @@ def main():
     # Tell the tracer to use the FileTracer, we don't use this 
     # because we're setting the sample rate to zero, this is just
     # to show how it is done.
-    get_tracer().set_handler(cronicl.utils.trace.FileTracer('cronicl_trace.log'))
+    get_tracer().set_handler(FileTracer('cronicl_trace.log'))
 
     # create a pipeline, pass it the graph we created, set the
     # trace sampling off
