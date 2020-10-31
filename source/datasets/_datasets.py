@@ -1,10 +1,6 @@
 
 import warnings
 import logging
-try:
-    import ujson as json
-except ImportError:
-    import json
 
 
 """

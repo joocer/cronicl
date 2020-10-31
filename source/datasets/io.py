@@ -4,10 +4,18 @@ IO
 End-Points (sources and sinks) for streaming data processing.
 """
 
+json_parser = None
 try:
-    import ujson as json
+    import orjson as json
+    json_parser = 'orjson'
 except ImportError:
-    import json
+    pass
+if not json_parser:
+    try:
+        import ujson
+        json_parser = 'ujson'
+    except ImportError:
+        import json
 import csv
 from pathlib import Path
 from ._datasets import select_fields

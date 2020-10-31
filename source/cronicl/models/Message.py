@@ -16,11 +16,8 @@ import random
 
 from ..utils.trace import get_tracer
 from ..utils.sanitizer import sanitize_record
+from ..utils.serialization import dict_to_json
 
-try:
-    import ujson as json
-except ImportError:
-    import json
 
 class Message(object):
 
@@ -47,7 +44,7 @@ class Message(object):
         if self.traced or force:
             sanitized_record = sanitize_record(self.payload, self.initializer)
             try:
-                sanitized_record = json.dumps(sanitized_record)
+                sanitized_record = dict_to_json(sanitized_record)
             except ValueError:
                 sanitized_record = str(sanitized_record)
             get_tracer().emit(self.id, execution_start, execution_duration, operation, version, child, self.initializer, sanitized_record)

@@ -11,9 +11,7 @@ import datetime
 import os
 import sys
 import re
-import pandas as pd
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-sys.path.insert(1, os.path.join(sys.path[0], '../..'))
 
 from cronicl.models.message import create_new_message
 from  cronicl.models import BaseOperation
