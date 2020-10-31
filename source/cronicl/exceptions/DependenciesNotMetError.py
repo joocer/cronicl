@@ -1,3 +1,3 @@
-from .CroniclException import CroniclException
+from .croniclexception import CroniclException
 
 class DependenciesNotMetError(CroniclException): pass
