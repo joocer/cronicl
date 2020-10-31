@@ -1,3 +1,3 @@
-from .CroniclExceptionTemplate import CroniclExceptionTemplate
+from .CroniclException import CroniclException
 
-class ValidationError(CroniclExceptionTemplate): pass
+class ValidationError(CroniclException): pass

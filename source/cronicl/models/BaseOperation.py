@@ -21,11 +21,6 @@ from ..models import Message
 from ..models.queue import get_queue
 from ..utils import ThreadLock, Signals
 
-try:
-    import ujson as json
-except ImportError:
-    import json
-
 
 class BaseOperation(abc.ABC):
 
@@ -239,18 +234,38 @@ class BaseOperation(abc.ABC):
         Smart DAG builder. This allows simple DAGs to be defined
         using the following syntax:
 
-        Op1 > Op2 > Op3
+        Op1 > Op2 > [Op3, Op4]
         """
-
         import networkx as nx
+
+        # make sure the target is iterable
+        if type(target).__name__ != 'list':
+            target = [target]
+
         if self.graph:
+            # if I have a graph already, build on it
             graph = self.graph
         else:
+            # if I don't have a graph, create one
             graph = nx.DiGraph()
-        graph.add_node(target.__class__.__name__, function=target)
-        graph.add_node(self.__class__.__name__, function=self)
-        graph.add_edge(self.__class__.__name__, target.__class__.__name__)
-        target.graph = graph
+            graph.add_node(self.__class__.__name__, function=self)
+
+        for point in target:
+            if type(point).__name__ == "DiGraph":
+                # if we're pointing to a graph, merge with the 
+                # current graph, we need to find the node with no 
+                # incoming nodes we identify the entry-point
+                graph = nx.compose(point, graph)
+                graph.add_edge(self.__class__.__name__, [ node for node in point.nodes() if len(graph.in_edges(node)) == 0 ][0])
+            else:
+                # otherwise add the node and edge and set the
+                # graph further down the line 
+                graph.add_node(point.__class__.__name__, function=point)
+                graph.add_edge(self.__class__.__name__, point.__class__.__name__)
+                point.graph = graph
+
+        # this variable only exists to build the graph, we don't 
+        # need it anymore so destroy it
         del self.graph
 
         return graph

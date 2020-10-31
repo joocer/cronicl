@@ -124,7 +124,7 @@ class Pipeline(object):
             # cause slow processing. It is important to remember, 
             # Python does not concurrently run threads, one thread 
             # runs whilst the other wait.
-            thread_count = self.graph.nodes()[operation].get('threads', 1)
+            thread_count = self.graph.nodes()[operation].get('concurrency', 1)
             # clamp the number of threads between 1 and 5
             thread_count = clamp(thread_count, 1, 5)
             
