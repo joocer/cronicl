@@ -1,2 +1,2 @@
-from .DependenciesNotMetError import DependenciesNotMetError
-from .ValidatorError import ValidationError
+from .dependenciesnotmeterror import DependenciesNotMetError
+from .validatorerror import ValidationError
