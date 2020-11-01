@@ -11,10 +11,11 @@ import datetime
 import os
 import sys
 import re
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
 
 from cronicl.models.message import create_new_message
-from  cronicl.models import BaseOperation
+from cronicl.models import BaseOperation
 import cronicl.operations
 
 
@@ -29,6 +30,6 @@ def test_operator(operator, payload):
     print(type(res))
 
 
-op = cronicl.operations.ValidatorOperation({"abc":"numeric"})
+op = cronicl.operations.ValidatorOperation({"abc": "numeric"})
 
-test_operator(op, {"abc":123})
+test_operator(op, {"abc": 123})

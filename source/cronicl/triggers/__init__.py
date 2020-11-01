@@ -15,6 +15,17 @@ statuses = ["Waiting", "Ready", "Running", "Failed", "Complete"]
 
 class BaseTrigger():
 
+    # on event is either called by nudge or by the event
+    def on_event(self, context):
+        pass
+
+class BaseEventTrigger():
+    http listener
+    pubsub listener
+
+
+class BasePollingTrigger():
+
     def __init__(self, max_runs=1, valid_from=datetime.MINYEAR):
         """
         max runs < 0 = run until stopped
@@ -31,6 +42,7 @@ class BaseTrigger():
     def nudge(self):
         pass
         # should I start running?
+        # puts a message on the queue
 
     def callback(self):
         pass
@@ -69,6 +81,8 @@ class IntervalTrigger(BaseTrigger):
             self.state = "Ready"
             return True
         return False
+
+        self.on_event(context)
 
 
 class DateTrigger(BaseTrigger): pass
