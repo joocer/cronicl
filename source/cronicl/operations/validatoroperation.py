@@ -10,6 +10,7 @@ class ValidatorOperation(BaseOperation):
     """
     Validate against a schema.
     """
+
     def __init__(self, schema):
         self.validator = Validator(schema)
         self.invalid_records = 0
@@ -29,5 +30,5 @@ class ValidatorOperation(BaseOperation):
         Obtain the data from the base class and extend it.
         """
         readings = BaseOperation.read_sensor(self)
-        readings['invalid_records'] = self.invalid_records
+        readings["invalid_records"] = self.invalid_records
         return readings

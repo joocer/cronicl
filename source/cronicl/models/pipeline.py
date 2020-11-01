@@ -11,12 +11,7 @@ from ..http import api_initializer
 
 
 class Pipeline(object):
-    def __init__(
-            self,
-            graph,
-            sample_rate=0.001,
-            enable_api=True,
-            api_port=8000):
+    def __init__(self, graph, sample_rate=0.001, enable_api=True, api_port=8000):
         self.threads = []
         self.paths = {}
         self.graph = graph

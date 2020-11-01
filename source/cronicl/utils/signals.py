@@ -5,6 +5,7 @@ Signals are special messages which affect behaviour.
 
 """
 
+
 class Signals:
 
     TERMINATE = object()

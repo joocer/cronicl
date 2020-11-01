@@ -16,7 +16,8 @@ import networkx as nx
 import time
 import os
 import sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
 import cronicl
 from cronicl.utils import Timer
 from cronicl.models.basetracer import get_tracer
@@ -28,23 +29,25 @@ class ExtractFollowersOperation(cronicl.BaseOperation):
     """
     Processing operation, unique to this pipeline.
 
-    Create a class that inherits from Operation and override the 
-    execute method. The method is passed a message object, this 
-    has a payload attribute which is one record being pushed 
+    Create a class that inherits from Operation and override the
+    execute method. The method is passed a message object, this
+    has a payload attribute which is one record being pushed
     through the pipeline.
 
     Perform the porcessing, update the payload and pass back a list
     of message objects, even if there's only one.
     """
+
     def execute(self, message):
         payload = message.payload
 
-        followers = int(payload.get('followers', -1))
-        verified = payload.get('user_verified', 'False') == 'True'
-        result = { 
-            "followers": followers, 
-            "user": payload.get('username', ''),
-            "verified": verified}
+        followers = int(payload.get("followers", -1))
+        verified = payload.get("user_verified", "False") == "True"
+        result = {
+            "followers": followers,
+            "user": payload.get("username", ""),
+            "verified": verified,
+        }
         message.payload = result
         return [message]
 
@@ -58,7 +61,7 @@ class MostFollowersOperation(cronicl.BaseOperation):
     """
 
     def init(self, **kwargs):
-        self.user = ''
+        self.user = ""
         self.followers = 0
 
     def execute(self, message):
@@ -69,9 +72,9 @@ class MostFollowersOperation(cronicl.BaseOperation):
         No return also works but returning None is more explicit.
         """
         payload = message.payload
-        if payload.get('followers') > self.followers:
-            self.followers = payload.get('followers')
-            self.user = payload.get('user')
+        if payload.get("followers") > self.followers:
+            self.followers = payload.get("followers")
+            self.user = payload.get("user")
             return [message]
         else:
             return [None]
@@ -94,18 +97,33 @@ following attributes set:
 
 dag = nx.DiGraph()
 
-dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" }), concurrency=1)
-dag.add_node('Extract Followers', function=ExtractFollowersOperation())
-dag.add_node('Most Followers (verified)', function=MostFollowersOperation())
-dag.add_node('Screen Sink', function=cronicl.operations.WriteToScreenOperation(), retry_count=1, retry_delay=100)
+dag.add_node(
+    "Data Validation",
+    function=cronicl.operations.ValidatorOperation(
+        {"followers": "numeric", "username": "string"}
+    ),
+    concurrency=1,
+)
+dag.add_node("Extract Followers", function=ExtractFollowersOperation())
+dag.add_node("Most Followers (verified)", function=MostFollowersOperation())
+dag.add_node(
+    "Screen Sink",
+    function=cronicl.operations.WriteToScreenOperation(),
+    retry_count=1,
+    retry_delay=100,
+)
 
-# The edges represent the connections between the operations. Edges 
-# have an optional 'filter' attribute which will filter records 
+# The edges represent the connections between the operations. Edges
+# have an optional 'filter' attribute which will filter records
 # being sent to the next operation.
 
-dag.add_edge('Data Validation', 'Extract Followers')
-dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.payload.get('verified') == True)
-dag.add_edge('Most Followers (verified)', 'Screen Sink')
+dag.add_edge("Data Validation", "Extract Followers")
+dag.add_edge(
+    "Extract Followers",
+    "Most Followers (verified)",
+    filter=lambda x: x.payload.get("verified") == True,
+)
+dag.add_edge("Most Followers (verified)", "Screen Sink")
 
 """
 This DAG could also be defined using the shorthand > notation. This
@@ -127,10 +145,10 @@ dag = data_validation > extract_followers > most_followers > screen_sink
 
 
 def main():
-    # Tell the tracer to use the FileTracer, we don't use this 
+    # Tell the tracer to use the FileTracer, we don't use this
     # because we're setting the sample rate to zero, this is just
     # to show how it is done.
-    get_tracer().set_handler(FileTracer('cronicl_trace.log'))
+    get_tracer().set_handler(FileTracer("cronicl_trace.log"))
 
     # create a pipeline, pass it the graph we created, set the
     # trace sampling off
@@ -144,13 +162,13 @@ def main():
     flow.draw()
 
     # Timing isn't required, here to show it in use
-    with Timer('pipeline'):
+    with Timer("pipeline"):
 
         # create a filereader - the chunker is a performance tweak
         file_reader = datasets.io.read_jsonl("small.jsonl", limit=10000)
         for chunk in datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
-            # execute can handle generators, lists or individual 
+            # execute can handle generators, lists or individual
             # records
             flow.execute(chunk)
 
@@ -168,7 +186,6 @@ def main():
     # - hom much time they were active for
     for sensor in flow.read_sensors():
         print(sensor)
-
 
 
 if __name__ == "__main__":

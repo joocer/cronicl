@@ -13,8 +13,20 @@ import datetime
 statuses = ["Waiting", "Ready", "Running", "Failed", "Complete"]
 
 
-class BaseTrigger():
+class BaseTrigger:
 
+    # on event is either called by nudge or by the event
+    def on_event(self, context):
+        pass
+
+
+class BaseEventTrigger:
+    # http listener
+    # pubsub listener
+    pass
+
+
+class BasePollingTrigger:
     def __init__(self, max_runs=1, valid_from=datetime.MINYEAR):
         """
         max runs < 0 = run until stopped
@@ -31,6 +43,7 @@ class BaseTrigger():
     def nudge(self):
         pass
         # should I start running?
+        # puts a message on the queue
 
     def callback(self):
         pass
@@ -38,11 +51,7 @@ class BaseTrigger():
 
 
 class IntervalTrigger(BaseTrigger):
-
-    def __init__(self, 
-            interval, 
-            max_runs=-1, 
-            valid_from=datetime.datetime.min):
+    def __init__(self, interval, max_runs=-1, valid_from=datetime.datetime.min):
 
         super().__init__()
 
@@ -51,13 +60,15 @@ class IntervalTrigger(BaseTrigger):
 
         print(valid_from)
 
-        if type(interval).__name__ == 'int':
+        if type(interval).__name__ == "int":
             # if a number, treat as seconds
             self.interval = datetime.timedelta(seconds=interval)
-        elif type(interval).__name__ == 'timedelta':
+        elif type(interval).__name__ == "timedelta":
             self.interval = interval
         else:
-            raise TypeError("Interval must be either a number of seconds or a timedelta")
+            raise TypeError(
+                "Interval must be either a number of seconds or a timedelta"
+            )
 
     def state(self):
         pass
@@ -66,16 +77,30 @@ class IntervalTrigger(BaseTrigger):
     def nudge(self):
         if self.__timestamp + self.interval < datetime.datetime.now():
             self.__timestamp = datetime.datetime.now()
-            self.state = "Ready"
+            self.state = "Ready"        
+            self.on_event(context)
             return True
         return False
 
 
-class DateTrigger(BaseTrigger): pass
-class FileWatchTrigger(BaseTrigger): pass
-class InstantTrigger(BaseTrigger): pass
-class WebHookTrigger(BaseTrigger): pass
-class GCS_PubSubTrigger(BaseTrigger): pass
+class DateTrigger(BaseTrigger):
+    pass
+
+
+class FileWatchTrigger(BaseTrigger):
+    pass
+
+
+class InstantTrigger(BaseTrigger):
+    pass
+
+
+class WebHookTrigger(BaseTrigger):
+    pass
+
+
+class GCS_PubSubTrigger(BaseTrigger):
+    pass
 
 
 import time
@@ -83,17 +108,18 @@ import time
 t = IntervalTrigger(5)
 while True:
     if t.nudge():
-        print('boom!')
+        print("boom!")
     else:
-        print('tick')
+        print("tick")
     time.sleep(1)
 
 
-class scheduler():
+class scheduler:
     def __init__(self):
         self.__threads = []
         self.__flows = []
-    def add_flow(self, flow, trigger)
+
+    def add_flow(self, flow, trigger):
         # create a thread for the trigger
         # when the trigger is true
         #   create a flow identifier - use this to log specific executions
@@ -101,6 +127,7 @@ class scheduler():
         #   execute the flow (pass data from the trigger)
         # when the flow completes, inform the trigger
         pass
+
     def status(self):
         # for each of the flows
         #   get status information
@@ -109,7 +136,7 @@ class scheduler():
 
 while t.waiting():
     if t.nudge():
-        something
-        #how does something known when it's complete?
+        something()
+        # how does something known when it's complete?
     else:
         sleep(sleep)
