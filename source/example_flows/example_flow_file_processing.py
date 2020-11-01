@@ -11,21 +11,18 @@ JSON File Pump
 
 """
 
+
+import networkx as nx
+import time
 import os
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
 import cronicl
 from cronicl.utils import Timer
 from cronicl.models.basetracer import get_tracer
-from cronicl.models.message import create_new_message 
 from cronicl.tracers import FileTracer
 import datasets.io
-import logging, sys
-import networkx as nx
-import time
 
-#logging.basicConfig( level=logging.DEBUG, format="%(created)-15s %(message)s")
 
 class ExtractFollowersOperation(cronicl.BaseOperation):
     """
@@ -46,8 +43,8 @@ class ExtractFollowersOperation(cronicl.BaseOperation):
         verified = payload.get('user_verified', 'False') == 'True'
         result = { 
             "followers": followers, 
-            "user": payload.get('username', ''), 
-            "verified": verified }
+            "user": payload.get('username', ''),
+            "verified": verified}
         message.payload = result
         return [message]
 
@@ -63,7 +60,6 @@ class MostFollowersOperation(cronicl.BaseOperation):
     def init(self, **kwargs):
         self.user = ''
         self.followers = 0
-
 
     def execute(self, message):
         """
@@ -82,9 +78,9 @@ class MostFollowersOperation(cronicl.BaseOperation):
 
 
 """
-The nodes prepresent the operations, each node can have the 
+The nodes prepresent the operations, each node can have the
 following attributes set:
- - function : mandatory, sets the operation class 
+ - function : mandatory, sets the operation class
  - concurrency : optional, sets the maximum number of concurrently
        running instances of this operation
        (default = 1, limited to 5)
@@ -99,7 +95,7 @@ following attributes set:
 dag = nx.DiGraph()
 
 dag.add_node('Data Validation', function=cronicl.operations.ValidatorOperation({ "followers": "numeric", "username" : "string" }), concurrency=1)
-dag.add_node('Extract Followers', function=ExtractFollowersOperation(), concurrency=1)
+dag.add_node('Extract Followers', function=ExtractFollowersOperation())
 dag.add_node('Most Followers (verified)', function=MostFollowersOperation())
 dag.add_node('Screen Sink', function=cronicl.operations.WriteToScreenOperation(), retry_count=1, retry_delay=100)
 
@@ -108,7 +104,7 @@ dag.add_node('Screen Sink', function=cronicl.operations.WriteToScreenOperation()
 # being sent to the next operation.
 
 dag.add_edge('Data Validation', 'Extract Followers')
-dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.payload.get('verified') == True )
+dag.add_edge('Extract Followers', 'Most Followers (verified)', filter=lambda x: x.payload.get('verified') == True)
 dag.add_edge('Most Followers (verified)', 'Screen Sink')
 
 """
@@ -128,6 +124,7 @@ screen_sink = cronicl.operations.WriteToScreenOperation()
 
 dag = data_validation > extract_followers > most_followers > screen_sink
 """
+
 
 def main():
     # Tell the tracer to use the FileTracer, we don't use this 

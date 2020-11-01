@@ -15,8 +15,6 @@ import logging
 import random
 import inspect
 import hashlib
-
-from ..models.basetracer import get_tracer
 from ..models import Message
 from ..models.queue import get_queue
 from ..utils import ThreadLock, Signals
@@ -42,7 +40,6 @@ class BaseOperation(abc.ABC):
         self.retry_delay = 0
         self.graph = None
 
-
     def init(self, **kwargs):
         """
         OVERRIDE IF REQUIRED
@@ -50,7 +47,6 @@ class BaseOperation(abc.ABC):
         Called once at the start of the pipeline.
         """
         pass
-
 
     def __call__(self, message):
         """
@@ -86,7 +82,7 @@ class BaseOperation(abc.ABC):
                     self.errors += 1
                 if tries > 0:
                     time.sleep(self.retry_delay)
-                tries -= 1   
+                tries -= 1 
                 results = []
 
         # let's forgive the user for some things
@@ -161,7 +157,6 @@ class BaseOperation(abc.ABC):
             self.my_version = full_hash.hexdigest()[-8:]
         return self.my_version
 
-
     def close(self):
         """
         OVERRIDE IF REQUIRED
@@ -169,7 +164,6 @@ class BaseOperation(abc.ABC):
         Called once when pipeline has finished all records
         """
         pass
-
 
     def read_sensor(self):
         """
@@ -190,7 +184,6 @@ class BaseOperation(abc.ABC):
             'execution_time': round(self.execution_time / 1e9, 4) if self.execution_time else 0
         }
 
-
     def run(self):
         """
         Method to run in a separate threat.
@@ -210,7 +203,6 @@ class BaseOperation(abc.ABC):
         # None is used to exit the method
         logging.debug(f'TERM {self.operation_name}')
 
-
     def force_trace(self):
         """
         Operations have have higher tracing frequencies than the
@@ -227,7 +219,6 @@ class BaseOperation(abc.ABC):
         if self.sample_rate:
             return random.randint(1, round(1/self.sample_rate)) == 1
         return False
-
 
     def __gt__(self, target):
         """
