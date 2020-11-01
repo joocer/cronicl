@@ -8,4 +8,10 @@ Integration Tests
 
 # test json serialization
 
-# test hello-world pipeline
+
+"""
+This tests that a very simple flow is able to be created and execute.
+"""
+import simpleflow
+
+assert simpleflow.execute(), "Failed to execute a simple flow"
