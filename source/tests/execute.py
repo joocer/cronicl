@@ -6,12 +6,16 @@ Integration Tests
 
 # test sanitizer
 
-# test json serialization
-
+"""
+This tests that JSON serialization routines are working as expected
+"""
+import serialize
+print('>>> EXECUTING SERIALIZATION TESTS')
+serialize.execute()
 
 """
 This tests that a very simple flow is able to be created and execute.
 """
 import simpleflow
-
-assert simpleflow.execute(), "Failed to execute a simple flow"
+print('>>> EXECUTING SIMPLE FLOW')
+simpleflow.execute()

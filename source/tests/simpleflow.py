@@ -36,4 +36,15 @@ def execute():
     while flow.running():
         time.sleep(1)
 
-    return True
+    readings = flow.read_sensors()
+
+    for reading in readings:
+        assert reading['input_records'] == 1, "Input Records reading not 1"
+        assert reading['output_records'] == 1, "Output Records reading not 1"
+        assert reading['errored_records'] == 0, "Errored Records reading not 0"
+        assert reading['input_output_ratio'] == 1, "Input:Output not 1"
+
+
+if __name__ == "__main__":
+    print('local execution of simple flow')
+    execute()

@@ -20,7 +20,11 @@ except ImportError:
 
 
 def dict_to_json(dic):
-    return orjson.dumps(dic, ensure_ascii=False)
+    serialized = orjson.dumps(dic)
+    if not type(serialized).__name__ == 'str':
+        serialized = serialized.decode()
+    return serialized
+
 
 def json_to_dict(string):
     return ujson.loads(string)
