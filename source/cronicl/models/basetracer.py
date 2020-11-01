@@ -16,25 +16,29 @@ baseTracer and using .setHandler
 
 import abc
 
+
 class BaseTracer(abc.ABC):
     """
     Base Class for Tracer
     """
+
     @abc.abstractmethod
-    def emit(self, 
-        msg_id, 
-        execution_start, 
-        execution_duration, 
-        operation, 
-        version, 
-        child, 
-        initializer, 
-        record):
+    def emit(
+        self,
+        msg_id,
+        execution_start,
+        execution_duration,
+        operation,
+        version,
+        child,
+        initializer,
+        record,
+    ):
 
         raise NotImplementedError("This method must be overriden.")
 
     def close(self):
-        pass # placeholder
+        pass  # placeholder
 
 
 class __tracer(object):
@@ -42,17 +46,37 @@ class __tracer(object):
     Handles writing trace logs out.
     Implemented as a Singleton.
     """
+
     _instance = None
     tracer = None
 
     def set_handler(self, tracer):
         if not issubclass(tracer.__class__, BaseTracer):
-            raise TypeError('Tracers must inherit from BaseTracer.')
+            raise TypeError("Tracers must inherit from BaseTracer.")
         self.tracer = tracer
 
-    def emit(self, msg_id, execution_start, execution_duration, operation, version, child, initializer, record):
+    def emit(
+        self,
+        msg_id,
+        execution_start,
+        execution_duration,
+        operation,
+        version,
+        child,
+        initializer,
+        record,
+    ):
         if self.tracer:
-            self.tracer.emit(msg_id, execution_start, execution_duration, operation, version, child, initializer, record)
+            self.tracer.emit(
+                msg_id,
+                execution_start,
+                execution_duration,
+                operation,
+                version,
+                child,
+                initializer,
+                record,
+            )
 
     def close(self):
         if self.tracer:
@@ -66,14 +90,3 @@ def get_tracer():
     if __tracer._instance is None:
         __tracer._instance = __tracer()
     return __tracer._instance
-
-
-
-
-
-
-
-
-
-   
-

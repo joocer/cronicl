@@ -1,8 +1,8 @@
 """
-Queues are used to hold messages between operations. 
+Queues are used to hold messages between operations.
 
-Queues allow the operations to: 
-    a) be loosely coupled and 
+Queues allow the operations to:
+    a) be loosely coupled and
     b) run in separate threads
 """
 
@@ -12,15 +12,16 @@ import re
 
 __queues = {}
 
+
 def get_queue(topic):
     """
     Call this to get an instance of the queue list
     """
-    topic = re.sub('[^0-9a-zA-Z]+', '_', topic).lower().rstrip('_').lstrip('_')
+    topic = re.sub("[^0-9a-zA-Z]+", "_", topic).lower().rstrip("_").lstrip("_")
     if topic not in __queues:
         new_queue = queue.SimpleQueue()
         __queues[topic] = new_queue
-        logging.debug(f'Created new queue: {topic}')
+        logging.debug(f"Created new queue: {topic}")
     return __queues.get(topic)
 
 
