@@ -1,5 +1,6 @@
 **/__pycache__/**
 **.jsonl
 .vscode/
-source/live_twitter_demo.py
+**live_twitter_demo.py
 cronicl_trace.log
+scratch/**

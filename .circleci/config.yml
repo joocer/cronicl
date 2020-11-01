@@ -13,7 +13,7 @@ jobs:
       - python/save-cache
       - run:
           #command: python cronicl/tests/execute.py
-          commans: echo pwd
+          command: echo pwd
           name: Test
 
 workflows:
