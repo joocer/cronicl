@@ -11,8 +11,7 @@ information separate to the payload to be sent with the payload.
 
 # we're using to select random samples so prng is good enough
 import uuid
-import logging
-import random 
+import random
 
 from ..models.basetracer import get_tracer
 from ..utils.sanitizer import sanitize_record

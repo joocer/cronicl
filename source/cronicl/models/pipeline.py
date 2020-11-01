@@ -1,7 +1,4 @@
-import time
 import logging
-import warnings
-import uuid
 import threading
 import networkx as nx
 
@@ -17,7 +14,7 @@ class Pipeline(object):
 
     def __init__(self, graph, sample_rate=0.001, enable_api=True, api_port=8000):
         self.threads = []
-        self.paths = { }
+        self.paths = {}
         self.graph = graph
         self.all_operations = self.graph.nodes()
         self.initialized = False
