@@ -12,8 +12,7 @@ jobs:
       - python/install-deps
       - python/save-cache
       - run:
-          #command: python cronicl/tests/execute.py
-          command: ls
+          command: python source/tests/execute.py
           name: Test
 
 workflows:
