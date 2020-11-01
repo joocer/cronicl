@@ -77,11 +77,10 @@ class IntervalTrigger(BaseTrigger):
     def nudge(self):
         if self.__timestamp + self.interval < datetime.datetime.now():
             self.__timestamp = datetime.datetime.now()
-            self.state = "Ready"
+            self.state = "Ready"        
+            self.on_event(context)
             return True
         return False
-
-        self.on_event(context)
 
 
 class DateTrigger(BaseTrigger):
