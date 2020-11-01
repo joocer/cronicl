@@ -1,8 +1,8 @@
 import time
 
-class Timer(object):
 
-    def __init__(self, name='unnamed'):
+class Timer(object):
+    def __init__(self, name="unnamed"):
         self.name = name
 
     def __enter__(self):

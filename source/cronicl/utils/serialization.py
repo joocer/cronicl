@@ -21,7 +21,7 @@ except ImportError:
 
 def dict_to_json(dic):
     serialized = orjson.dumps(dic)
-    if not type(serialized).__name__ == 'str':
+    if not type(serialized).__name__ == "str":
         serialized = serialized.decode()
     return serialized
 

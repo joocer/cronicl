@@ -15,7 +15,6 @@ import threading
 
 
 class ThreadLock(object):
-
     def __init__(self):
         self.lock = threading.Lock()
 

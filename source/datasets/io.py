@@ -7,13 +7,15 @@ End-Points (sources and sinks) for streaming data processing.
 json_parser = None
 try:
     import orjson as json
-    json_parser = 'orjson'
+
+    json_parser = "orjson"
 except ImportError:
     pass
 if not json_parser:
     try:
         import ujson
-        json_parser = 'ujson'
+
+        json_parser = "ujson"
     except ImportError:
         import json
 import csv
@@ -21,21 +23,21 @@ from pathlib import Path
 from ._datasets import select_fields
 
 
-def to_csv(dataset, filename, columns=['first_row']):
+def to_csv(dataset, filename, columns=["first_row"]):
     """
     Saves a dataset as a CSV
     """
     import csv
 
-    with open (filename, 'w', encoding='utf8', newline='') as file:
-        
+    with open(filename, "w", encoding="utf8", newline="") as file:
+
         # get the first record
         row = dataset.__next__()
 
         # get the columns from the record
-        if columns==['first_row']:
-            columns=dataset.keys()
-        
+        if columns == ["first_row"]:
+            columns = dataset.keys()
+
         # write the headers
         csv_file = csv.DictWriter(file, fieldnames=columns)
         csv_file.writeheader()
@@ -47,9 +49,8 @@ def to_csv(dataset, filename, columns=['first_row']):
             row = dataset.__next__()
 
 
-def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
-    """
-    """
+def read_jsonl(filename, limit=-1, chunk_size=1024 * 1024, delimiter="\n"):
+    """"""
     file_reader = read_file(filename, chunk_size=chunk_size, delimiter=delimiter)
     line = next(file_reader)
     while line:
@@ -63,13 +64,13 @@ def read_jsonl(filename, limit=-1, chunk_size=1024*1024, delimiter='\n'):
             return
 
 
-def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
+def read_file(filename, chunk_size=1024 * 1024, delimiter="\n"):
     """
     Reads an arbitrarily long file, line by line
     """
-    with open(filename, 'r', encoding="utf8") as f:
-        carry_forward = ''
-        chunk = 'INITIALIZED'
+    with open(filename, "r", encoding="utf8") as f:
+        carry_forward = ""
+        chunk = "INITIALIZED"
         while len(chunk) > 0:
             chunk = f.read(chunk_size)
             augmented_chunk = carry_forward + chunk
@@ -81,7 +82,7 @@ def read_file(filename, chunk_size=1024*1024, delimiter='\n'):
 
 
 def read_csv_lines(filename):
-    with open(filename, "r", encoding='utf-8') as csvfile:
+    with open(filename, "r", encoding="utf-8") as csvfile:
         datareader = csv.reader(csvfile)
         headers = next(datareader)
         row = next(datareader)
@@ -94,15 +95,15 @@ def read_csv_lines(filename):
 
 
 def write_jsonl(filename, data):
-    with open(filename, "w", encoding='utf-8') as jsonfile:
+    with open(filename, "w", encoding="utf-8") as jsonfile:
         for r in data:
             try:
-                jsonfile.write(json.dumps(r) + '\n')
+                jsonfile.write(json.dumps(r) + "\n")
             except ValueError:
-                jsonfile.write("*****" + '\n')
+                jsonfile.write("*****" + "\n")
 
 
-#https://gist.github.com/nwjlyons/621fabfc0d4c1119b2ad338f615ce4ef#file-chunks-py
+# https://gist.github.com/nwjlyons/621fabfc0d4c1119b2ad338f615ce4ef#file-chunks-py
 def generator_chunker(generator, chunk_size):
     """Yield successive chunks from a generator"""
     chunk = []
@@ -116,9 +117,9 @@ def generator_chunker(generator, chunk_size):
 
     if chunk:
         yield chunk
-    
+
 
 def clear_screen():
-    print(chr(27)+'[2j')
-    print('\033c')
-    print('\x1bc')
+    print(chr(27) + "[2j")
+    print("\033c")
+    print("\x1bc")
