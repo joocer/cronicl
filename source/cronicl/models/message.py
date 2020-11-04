@@ -26,6 +26,7 @@ class Message(object):
         self.attributes = {}
         self.traced = traced
         self.initializer = initializer
+        self.operation_timings = {}
         if not self.initializer:
             self.initializer = self.id
 

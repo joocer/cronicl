@@ -32,12 +32,13 @@ class BaseOperation(abc.ABC):
         self.first_seen = None
         self.execution_time = 0
         self.my_version = None
-        self.operation_name = ""
+        self.operation_name = self.__class__.__name__
         self.errors = 0
         self.sample_rate = None
         self.retry_count = 0
         self.retry_delay = 0
         self.graph = None
+        self.operation_timings = {}
 
     def init(self, **kwargs):
         """
@@ -112,13 +113,12 @@ class BaseOperation(abc.ABC):
                     execution_duration=execution_duration / 1e9,
                     force=self.force_trace(),
                 )
-
                 # messages inherit some values from their parent,
                 # traced and initializer are required to be the
                 # same as part of their core function
                 result.traced = traced
                 result.initializer = message.initializer
-
+                result.operation_timings[self.operation_name] = execution_duration
                 # deal with thread-unsafety
                 with ThreadLock():
                     self.output_record_count += 1
