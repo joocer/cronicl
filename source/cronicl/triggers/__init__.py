@@ -9,41 +9,71 @@ wait_for_file(filename) > file_to_json > filter_columns > save_to_file
 """
 
 import datetime
+import abc
+import threading
+from ..exceptions import StopTrigger
 
 statuses = ["Waiting", "Ready", "Running", "Failed", "Complete"]
 
 
-class BaseTrigger:
+class BaseTrigger(abc.ABC):
 
-    # on event is either called by nudge or by the event
-    def on_event(self, context):
+    def __init__(self):
         pass
 
+    def set_flow(self, flow):
+        self.flow = flow
 
-class BaseEventTrigger:
-    # http listener
-    # pubsub listener
-    pass
-
-
-class BasePollingTrigger:
-    def __init__(self, max_runs=1, valid_from=datetime.MINYEAR):
+    @abc.abstractmethod
+    def engage(self, flow):
         """
-        max runs < 0 = run until stopped
+        'engage' is called when a trigger is loaded.
         """
-        self.__state = "Waiting"
+        raise NotImplementedError("'engage' must be overridden")
 
-    def init(self, *args):
-        pass
+    def on_event(self, *kwargs):
+        self.flow.execute(*kwargs)
 
     def state(self):
         pass
         # waiting, running, complete, failed
 
+
+
+
+
+class PubSubTrigger(BaseTrigger):
+    pass
+
+
+class BasePollingTrigger(BasePollingTrigger):
+
+    def __init__(self, flow=None, interval=60, max_runs=1, valid_from=datetime.MINYEAR):
+        """
+        max runs < 0 = run until stopped
+        """
+        self.__state = "Waiting"
+        self.interval = interval
+
+    def init(self, *args):
+        pass
+
+    @abc.abstractmethod
     def nudge(self):
         pass
         # should I start running?
         # puts a message on the queue
+
+    def engage(self):
+        while True:
+            if self.nudge():
+                print("boom!")
+                self.on_event()
+            else:
+                print("tick")
+            time.sleep(self.interval)
+
+
 
     def callback(self):
         pass
@@ -51,7 +81,7 @@ class BasePollingTrigger:
 
 
 class IntervalTrigger(BaseTrigger):
-    def __init__(self, interval, max_runs=-1, valid_from=datetime.datetime.min):
+    def __init__(self, interval=1, max_runs=-1, valid_from=datetime.datetime.min):
 
         super().__init__()
 
@@ -99,7 +129,7 @@ class WebHookTrigger(BaseTrigger):
     pass
 
 
-class GCS_PubSubTrigger(BaseTrigger):
+class GCSPubSubTrigger(BaseTrigger):
     pass
 
 
@@ -114,12 +144,40 @@ while True:
     time.sleep(1)
 
 
+def __schedule_thread_runner(flow, trigger):
+    """
+    The wrapper around triggers, this is blocking so should be
+    run in a separate thread.
+
+    - Memory and Keyboard Errors are bubbled.
+    - StopTriggers gracefully
+    - Other errors are ignored
+    """
+    trigger.flow = flow
+    stop_trigger = False
+
+    while not stop_trigger:
+        try:
+            trigger.engage()
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt()
+        except MemoryError:
+            raise MemoryError()
+        except StopTrigger:
+            stop_trigger = True
+        except:
+            pass
+
 class scheduler:
     def __init__(self):
         self.__threads = []
         self.__flows = []
 
     def add_flow(self, flow, trigger):
+
+        api_thread = threading.Thread(target=__schedule_thread_runner, args=(self, flow, trigger))
+        api_thread.daemon = True
+        api_thread.start()
         # create a thread for the trigger
         # when the trigger is true
         #   create a flow identifier - use this to log specific executions
@@ -132,6 +190,11 @@ class scheduler:
         # for each of the flows
         #   get status information
         pass
+
+
+s = scheduler()
+s.add_flow(flow=None, trigger=DateTrigger(max_runs=1, valid_from=datetime.datetime.today()))
+s.add_flow(flow=None, trigger=FileWatchTrigger(filename="", max_runs=1))
 
 
 while t.waiting():
