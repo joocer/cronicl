@@ -1,7 +1,7 @@
 import threading
 import time
 from ..exceptions import StopTrigger
-
+from ..http import api_initializer
 
 def _schedule_thread_runner(flow, trigger):
     """
@@ -13,9 +13,9 @@ def _schedule_thread_runner(flow, trigger):
     - Other errors are ignored
     """
     trigger.flow = flow
-    stop_trigger = False
+    keep_running_trigger = True
 
-    while not stop_trigger:
+    while keep_running_trigger:
         try:
             trigger.engage()
         except KeyboardInterrupt:
@@ -23,9 +23,10 @@ def _schedule_thread_runner(flow, trigger):
         except MemoryError:
             raise MemoryError()
         except StopTrigger:
-            stop_trigger = True
+            keep_running_trigger = False
         # don't form a tight loop, slow it down
         time.sleep(5)
+    print(f"Scheduler Thread {threading.get_name()} has died")
 
 
 class Scheduler(object):
@@ -35,20 +36,31 @@ class Scheduler(object):
     Scheduled tasks must have a trigger, this trigger will acquire
     the initializing data for the flow.
     """
-
-    def __init__(self):
-        self.__threads = []
+    def __init__(self, enable_api=True, api_port=8000):
+        self._threads = []
+        if enable_api:
+            # the very start of the HTTP Interface
+            api_thread = threading.Thread(target=api_initializer, args=(self, api_port))
+            api_thread.daemon = True
+            api_thread.setName("cronicl:api_thread")
+            api_thread.start()
 
     def add_flow(self, flow, trigger):
-        api_thread = threading.Thread(
+        flow_thread = threading.Thread(
             target=_schedule_thread_runner, args=(flow, trigger)
         )
-        api_thread.daemon = True
-        api_thread.start()
+        flow_thread.daemon = True
+        flow_thread.setName(F"scheduler:{flow.__class__.__name__}:{trigger.__class__.__name__}")
+        self._threads.append(flow_thread)
+
+    def execute(self):
+        """
+        Start each of the flow trigger threads
+        """
+        [t.start() for t in self._threads]
 
     def running(self):
         """
         Are any thread still running
         """
-        print("Am I running?")
-        return all([not t.active for t in self.__threads])
+        return any([t.is_alive() for t in self._threads])
