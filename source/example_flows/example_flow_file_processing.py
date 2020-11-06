@@ -1,5 +1,5 @@
 """
-Pipeline Demo - Twitter
+Flow Demo - Twitter
 
 A demonstration flow.
 
@@ -27,12 +27,12 @@ import datasets.io
 
 class ExtractFollowersOperation(cronicl.BaseOperation):
     """
-    Processing operation, unique to this pipeline.
+    Processing operation, unique to this flow.
 
     Create a class that inherits from Operation and override the
     execute method. The method is passed a message object, this
     has a payload attribute which is one record being pushed
-    through the pipeline.
+    through the flow.
 
     Perform the porcessing, update the payload and pass back a list
     of message objects, even if there's only one.
@@ -54,9 +54,9 @@ class ExtractFollowersOperation(cronicl.BaseOperation):
 
 class MostFollowersOperation(cronicl.BaseOperation):
     """
-    Another processing operation unique to this pipeline.
+    Another processing operation unique to this flow.
 
-    Includes an init method, this is called once when the pipeline
+    Includes an init method, this is called once when the flow
     is being initialized
     """
 
@@ -127,7 +127,7 @@ dag.add_edge("Most Followers (verified)", "Screen Sink")
 
 """
 This DAG could also be defined using the shorthand > notation. This
-is quicker to define but options such as retries, connector filters 
+is quicker to define but options such as retries, connector filters
 and threads are threading options are unavailable.
 
 The > notation does not enable filters on connectors, this can be
@@ -150,34 +150,34 @@ def main():
     # to show how it is done.
     get_tracer().set_handler(FileTracer("cronicl_trace.log"))
 
-    # create a pipeline, pass it the graph we created, set the
+    # create a flow, pass it the graph we created, set the
     # trace sampling off
-    flow = cronicl.Pipeline(dag, sample_rate=0.0, enable_api=True, api_port=8001)
+    flow = cronicl.Flow(dag, sample_rate=0.0, enable_api=True, api_port=8001)
 
     # run the initialization routines, this also runs the operation
     # inits
     flow.init()
 
-    # draw the pipeline
+    # draw the flow
     flow.draw()
 
     # Timing isn't required, here to show it in use
-    with Timer("pipeline"):
+    with Timer("flow"):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = datasets.io.read_jsonl("small.jsonl", limit=10000)
+        file_reader = datasets.io.read_jsonl("small.jsonl", limit=10)
         for chunk in datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual
             # records
             flow.execute(chunk)
 
-        # the pipeline runs across threads, we need to wait for
+        # the flow runs across threads, we need to wait for
         # all the operations to finish, keep checking every second
         while flow.running():
             time.sleep(1)
 
-    # close the pipeline and the tracer
+    # close the flow and the tracer
     flow.close()
     get_tracer().close()
 

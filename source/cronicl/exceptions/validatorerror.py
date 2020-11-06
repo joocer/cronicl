@@ -1,7 +1,7 @@
 """
 Validation Error
 
-Call this when a validation routine discovers invalud data.
+Call this when a validation routine discovers invalid data.
 """
 
 from .croniclexception import CroniclException
