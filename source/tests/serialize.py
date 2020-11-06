@@ -19,16 +19,22 @@ TEST_DICT = {
 }
 
 
+# Assert raises some quelity issues
+def test(outcome, message=''):
+    if not outcome:
+        raise AssertionError(message)
+
+
 def execute():
 
     serialized = dict_to_json(TEST_DICT)
     deserialized = json_to_dict(serialized)
     reserialized = dict_to_json(deserialized)
 
-    assert (
+    test(
         TEST_DICT == deserialized
     ), "JSON Deserialization does not create matching results"
-    assert (
+    test(
         serialized == reserialized
     ), "JSON Serialization does not creating matching results"
 
