@@ -20,7 +20,7 @@ TEST_DICT = {
 
 
 # Assert raises some quelity issues
-def test(outcome, message=''):
+def test(outcome, message=""):
     if not outcome:
         raise AssertionError(message)
 

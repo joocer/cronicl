@@ -20,8 +20,8 @@ class BaseTrigger(abc.ABC):
         """
         'engage' is called when a trigger is loaded.
 
-        This should start any listening activities - like 
-        subscribing to message queues. 
+        This should start any listening activities - like
+        subscribing to message queues.
         """
         raise NotImplementedError("'engage' must be overridden")
 
@@ -42,9 +42,7 @@ class BasePollingTrigger(BaseTrigger):
                 trigger, -1 = run forever
     """
 
-    def __init__(self,
-                interval=60,
-                max_runs=1):
+    def __init__(self, interval=60, max_runs=1):
         """
         max runs < 0 = run until stopped
         """

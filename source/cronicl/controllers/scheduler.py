@@ -35,13 +35,14 @@ class Scheduler(object):
     Scheduled tasks must have a trigger, this trigger will acquire
     the initializing data for the flow.
     """
+
     def __init__(self):
         self.__threads = []
 
     def add_flow(self, flow, trigger):
         api_thread = threading.Thread(
-            target=_schedule_thread_runner,
-            args=(flow, trigger))
+            target=_schedule_thread_runner, args=(flow, trigger)
+        )
         api_thread.daemon = True
         api_thread.start()
 
@@ -49,6 +50,5 @@ class Scheduler(object):
         """
         Are any thread still running
         """
-        print('Am I running?')
+        print("Am I running?")
         return all([not t.active for t in self.__threads])
-        

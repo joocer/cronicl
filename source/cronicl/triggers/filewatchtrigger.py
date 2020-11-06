@@ -4,7 +4,6 @@ import pathlib
 
 
 class FileWatchTrigger(BasePollingTrigger):
-
     def __init__(self, filename, **kwargs):
         self.filename = filename
         super().__init__(**kwargs)
