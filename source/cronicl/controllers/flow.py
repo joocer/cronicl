@@ -3,14 +3,14 @@ import threading
 import networkx as nx
 
 from ..operations.nulloperation import NullOperation
-from .message import create_new_message
-from .queue import get_queue, queues_empty
+from ..models.message import create_new_message
+from ..models.queue import get_queue, queues_empty
 from ..utils import Signals
 from ..exceptions import ValidationError, DependenciesNotMetError
 from ..http import api_initializer
 
 
-class Pipeline(object):
+class Flow(object):
     def __init__(self, graph, sample_rate=0.001, enable_api=True, api_port=8000):
         self.threads = []
         self.paths = {}

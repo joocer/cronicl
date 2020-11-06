@@ -13,6 +13,15 @@ Schema is a dictionary
     "field_name": "type",
     "field_name": "type"
 }
+
+### new format
+{
+    "field_name": {
+        "type": "type",
+        "expression": "regex",
+        "range": (min, max)
+    }
+}
 """
 import datetime
 
