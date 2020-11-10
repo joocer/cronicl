@@ -3,12 +3,13 @@ Simple HTTP Trigger
 
 DO NOT USE IN PRODUCTION
 
-Exposes a web server (default port 9000), passes values passes
-values passed via the querystring as data into the flow.
+Exposes a web server (default port 9000), passes 
+values passed via the querystring to the dispatcher.
 """
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
+from .base_trigger import BaseTrigger
 
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
@@ -22,7 +23,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.event_handler(self.extract_query_string(self.path))
 
 
-class SimpleHTTPTrigger:
+class SimpleHTTPTrigger(BaseTrigger):
     """
     Simple HTTP Trigger
 
@@ -32,8 +33,9 @@ class SimpleHTTPTrigger:
     string into a pipeline.
     """
 
-    def __init__(self, port=9000):
-        self.port = port
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.port = kwargs.get('port', 9000)
 
     def engage(self, flow):
         handler = SimpleHTTPRequestHandler
@@ -41,8 +43,8 @@ class SimpleHTTPTrigger:
         handler.event_handler = self.on_event
         httpd.serve_forever()
 
-    def on_event(self, data):
-        print(f"on event ({data})")
+    def on_event(self, payload):
+        print(payload)
 
 
 if __name__ == "__main__":
