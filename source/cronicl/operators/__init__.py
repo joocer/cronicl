@@ -2,3 +2,4 @@ from .null_operation import NullOperation
 from .validator_operation import ValidatorOperation
 from .write_to_file_operation import WriteToFileOperation
 from .write_to_screen_operation import WriteToScreenOperation
+from .base_operation import BaseOperation

@@ -1,7 +1,7 @@
 """
 File Tracer
 """
-from ..models import BaseTracer
+from .base_tracer import BaseTracer
 import datetime
 
 

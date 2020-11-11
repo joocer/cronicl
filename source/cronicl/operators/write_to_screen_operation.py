@@ -4,7 +4,7 @@ Write to Screen
 Simple operator which prints text to the screen.
 """
 
-from ..models.baseoperation import BaseOperation
+from .base_operation import BaseOperation
 
 
 class WriteToScreenOperation(BaseOperation):

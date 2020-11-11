@@ -2,7 +2,7 @@
 Validator Operation
 """
 
-from ..models.baseoperation import BaseOperation
+from .base_operation import BaseOperation
 from ..utils import Validator
 
 

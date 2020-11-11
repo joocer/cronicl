@@ -1,4 +1,4 @@
-from ..models.baseoperation import BaseOperation
+from .base_operation import BaseOperation
 
 
 class NullOperation(BaseOperation):

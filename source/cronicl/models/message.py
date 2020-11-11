@@ -13,7 +13,7 @@ information separate to the payload to be sent with the payload.
 import uuid
 import random
 
-from ..models.basetracer import get_tracer
+from ..tracers.base_tracer import get_tracer
 from ..utils.sanitizer import sanitize_record
 from ..utils.serialization import dict_to_json
 

@@ -2,7 +2,7 @@ import logging
 import threading
 import networkx as nx
 
-from ..operations.nulloperation import NullOperation
+from ..operators import NullOperation
 from ..models.message import create_new_message
 from ..models.queue import get_queue, queues_empty
 from ..utils import Signals
@@ -204,7 +204,7 @@ class Flow(object):
             ):  # extend the prefix and recurse:
                 extension = branch if pointer == tee else space
                 # i.e. space because last, └── , above so no more |
-                yield from self.tree(child_node, prefix=prefix + extension)
+                yield from self._tree(child_node, prefix=prefix + extension)
 
     def draw(self):
         print("Pipeline Entry")

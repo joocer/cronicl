@@ -7,7 +7,7 @@ For example an init hasn't been called first or a required method
 doesn't exist on an object.
 """
 
-from .croniclexception import CroniclException
+from .cronicl_exception import CroniclException
 
 
 class DependenciesNotMetError(CroniclException):
