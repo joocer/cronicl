@@ -2,16 +2,15 @@ import logging
 import threading
 import networkx as nx
 
-from ..operations.nulloperation import NullOperation
+from ..operators import NullOperation
 from ..models.message import create_new_message
 from ..models.queue import get_queue, queues_empty
 from ..utils import Signals
 from ..exceptions import ValidationError, DependenciesNotMetError
-from ..http import api_initializer
 
 
 class Flow(object):
-    def __init__(self, graph, sample_rate=0.001, enable_api=True, api_port=8000):
+    def __init__(self, graph, sample_rate=0.001):
         self.threads = []
         self.paths = {}
         self.graph = graph
@@ -55,11 +54,6 @@ class Flow(object):
             raise ValidationError(
                 "The object on all 'function' attributes in a Pipeline must have an 'execute' method"
             )
-        if enable_api:
-            # the very start of the HTTP Interface
-            api_thread = threading.Thread(target=api_initializer, args=(self, api_port))
-            api_thread.daemon = True
-            api_thread.start()
         logging.debug(
             "loaded a pipeline with {} operations, {} entry point(s)".format(
                 len(self.all_operations), len(self.entry_nodes)
@@ -159,7 +153,6 @@ class Flow(object):
             self.threads.append(reply_handler_thread)
 
     def execute(self, value):
-        """"""
         if not self.initialized:
             raise DependenciesNotMetError(
                 "Pipeline's init method must be called before execute"
@@ -175,7 +168,6 @@ class Flow(object):
                 get_queue(entry).put(message, False)
 
     def close(self):
-
         if self.initialized:
             # call all the closes
             for operation in self.all_operations:
@@ -195,7 +187,7 @@ class Flow(object):
         return readings
 
     # adapted from https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
-    def tree(self, node, prefix=""):
+    def _tree(self, node, prefix=""):
 
         space = "    "
         branch = " │  "
@@ -212,13 +204,13 @@ class Flow(object):
             ):  # extend the prefix and recurse:
                 extension = branch if pointer == tee else space
                 # i.e. space because last, └── , above so no more |
-                yield from self.tree(child_node, prefix=prefix + extension)
+                yield from self._tree(child_node, prefix=prefix + extension)
 
     def draw(self):
         print("Pipeline Entry")
         for entry in self.entry_nodes:
             print(" └─ {}".format(entry))
-            t = self.tree(entry, "    ")
+            t = self._tree(entry, "    ")
             print("\n".join(t))
 
     def flow(self):

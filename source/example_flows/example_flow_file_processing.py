@@ -20,8 +20,7 @@ import sys
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 import cronicl
 from cronicl.utils import Timer
-from cronicl.models.basetracer import get_tracer
-from cronicl.tracers import FileTracer
+from cronicl.tracers import FileTracer, get_tracer
 import datasets.io
 
 
@@ -99,7 +98,7 @@ dag = nx.DiGraph()
 
 dag.add_node(
     "Data Validation",
-    function=cronicl.operations.ValidatorOperation(
+    function=cronicl.operators.ValidatorOperation(
         {"followers": "numeric", "username": "string"}
     ),
     concurrency=1,
@@ -108,7 +107,7 @@ dag.add_node("Extract Followers", function=ExtractFollowersOperation())
 dag.add_node("Most Followers (verified)", function=MostFollowersOperation())
 dag.add_node(
     "Screen Sink",
-    function=cronicl.operations.WriteToScreenOperation(),
+    function=cronicl.operators.WriteToScreenOperation(),
     retry_count=1,
     retry_delay=100,
 )
@@ -152,7 +151,7 @@ def main():
 
     # create a flow, pass it the graph we created, set the
     # trace sampling off
-    flow = cronicl.Flow(dag, sample_rate=0.0, enable_api=True, api_port=8001)
+    flow = cronicl.Flow(dag, sample_rate=0.0)
 
     # run the initialization routines, this also runs the operation
     # inits

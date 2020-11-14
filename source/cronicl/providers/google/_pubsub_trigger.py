@@ -1,0 +1,2 @@
+class PubSubTrigger(BaseTrigger):
+    pass

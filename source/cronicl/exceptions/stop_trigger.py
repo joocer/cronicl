@@ -4,7 +4,7 @@ Trigger Termination
 Used to signal the Trigger should Terminate
 """
 
-from .croniclexception import CroniclException
+from .cronicl_exception import CroniclException
 
 
 class StopTrigger(CroniclException):

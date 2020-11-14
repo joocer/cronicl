@@ -4,7 +4,7 @@ Validation Error
 Call this when a validation routine discovers invalid data.
 """
 
-from .croniclexception import CroniclException
+from .cronicl_exception import CroniclException
 
 
 class ValidationError(CroniclException):

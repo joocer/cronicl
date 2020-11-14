@@ -4,7 +4,7 @@ Null Tracer
 Don't Log Anything.
 """
 
-from ..models import BaseTracer
+from .base_tracer import BaseTracer
 
 
 class NullTracer(BaseTracer):

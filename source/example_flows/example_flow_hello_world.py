@@ -7,6 +7,7 @@ A basic implementation of a cronicl pipeline.
 import os
 import sys
 import time
+
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 import cronicl
 
@@ -15,7 +16,7 @@ import cronicl
 class SayHelloOperation(cronicl.BaseOperation):
     def execute(self, message):
         name = message.payload
-        message.payload = F"Hello, {name}"
+        message.payload = f"Hello, {name}"
         return [message]
 
 
