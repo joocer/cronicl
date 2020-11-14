@@ -6,6 +6,7 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=joocer_cronicl&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=joocer_cronicl)
 [![CircleCI](https://circleci.com/gh/joocer/cronicl.svg?style=shield)](https://circleci.com/gh/joocer/cronicl)
 [![PyPI Latest Release](https://img.shields.io/pypi/v/cronicl.svg)](https://pypi.org/project/cronicl/)
+[![Known Vulnerabilities](https://snyk.io/test/github/joocer/cronicl/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/joocer/cronicl?targetFile=requirements.txt)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 **cronicl** is a simple data processing library written in Python.
