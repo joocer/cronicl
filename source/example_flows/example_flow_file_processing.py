@@ -2,15 +2,7 @@
 Flow Demo - Twitter
 
 A demonstration flow.
-
-JSON File Pump
- └─ Data Validation
-     └─ Extract Followers
-         └─ Most Followers (verified)
-             └─ Screen Sink
-
 """
-
 
 import networkx as nx
 import time
