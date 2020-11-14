@@ -143,7 +143,7 @@ def main():
 
     # create a flow, pass it the graph we created, set the
     # trace sampling off
-    flow = cronicl.Flow(dag, sample_rate=0.0)
+    flow = cronicl.Flow(dag=dag, label="example flow", sample_rate=0.0)
 
     # run the initialization routines, this also runs the operation
     # inits

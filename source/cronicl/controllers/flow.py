@@ -6,16 +6,24 @@ from ..operators import NullOperation
 from ..models.message import create_new_message
 from ..models.queue import get_queue, queues_empty
 from ..utils import Signals
-from ..exceptions import ValidationError, DependenciesNotMetError
+from ..exceptions import ValidationError, DependenciesNotMetError, MissingInformationError
 
 
 class Flow(object):
-    def __init__(self, graph, sample_rate=0.001):
+
+    def __init__(self, dag=None, sample_rate=0.001, label=None):
         self.threads = []
         self.paths = {}
-        self.graph = graph
+        self.graph = dag
         self.all_operations = self.graph.nodes()
         self.initialized = False
+        self.label = label
+
+        if not dag or type(dag).__name__ != 'DiGraph':
+            raise MissingInformationError(F"Flows must have a valid DAG")
+
+        if not label:
+            raise MissingInformationError("Flows must have a label")
 
         # tracing can be resource heavy, so we trace a sample
         # default sampling rateis 0.1% (one per thousand)
@@ -23,14 +31,14 @@ class Flow(object):
 
         # get the entry nodes - the ones with 0 incoming nodes
         self.entry_nodes = [
-            node for node in self.all_operations if len(graph.in_edges(node)) == 0
+            node for node in self.all_operations if len(dag.in_edges(node)) == 0
         ]
 
         # VALIDATE THE GRAPH
         # The pipeline can't be cyclic
         has_loop = True
         try:
-            nx.find_cycle(graph, orientation="ignore")
+            nx.find_cycle(dag, orientation="ignore")
         except nx.NetworkXNoCycle:
             has_loop = False
         if has_loop:
@@ -39,7 +47,7 @@ class Flow(object):
             )
         # Every operation node must have a function attribute
         if not all(
-            [graph.nodes()[node].get("function") for node in self.all_operations]
+            [dag.nodes()[node].get("function") for node in self.all_operations]
         ):
             raise ValidationError(
                 "All Operations in the Pipeline must have a 'function' attribute.\nIf all Operations have a 'function', check Connector definitions for errors in Operation names."
@@ -47,7 +55,7 @@ class Flow(object):
         # Every object on the function attribute must have an execute method
         if not all(
             [
-                hasattr(graph.nodes()[node]["function"], "execute")
+                hasattr(dag.nodes()[node]["function"], "execute")
                 for node in self.all_operations
             ]
         ):

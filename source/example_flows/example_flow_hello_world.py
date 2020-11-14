@@ -31,7 +31,7 @@ class PrintMessageOperation(cronicl.BaseOperation):
 dag = SayHelloOperation() > PrintMessageOperation()
 
 # create a Flow instance and initialize
-flow = cronicl.Flow(dag)
+flow = cronicl.Flow(dag=dag, label="hello, world")
 flow.init()
 
 # execute the flow, passing 'cronicl' as the data

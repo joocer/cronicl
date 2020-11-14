@@ -10,6 +10,9 @@ values passed via the querystring to the dispatcher.
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
 from .base_trigger import BaseTrigger
+from ..dispatchers import CommandLineDispatcher
+from ..exceptions import ToxicCombinationError
+import warnings
 
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
@@ -34,18 +37,18 @@ class SimpleHTTPTrigger(BaseTrigger):
     """
 
     def __init__(self, *args, **kwargs):
+        warnings.warn("SimpleHTTPTrigger is not safe for production systems.")
         super().__init__(*args, **kwargs)
         self.port = kwargs.get('port', 9000)
 
-    def engage(self, flow):
+        if isinstance(kwargs['dispatcher'], CommandLineDispatcher):
+            raise ToxicCombinationError('HTTP Trigger and CommandLine Dispatcher actively forbidden')
+
+    def engage(self):
         handler = SimpleHTTPRequestHandler
         httpd = HTTPServer(("localhost", self.port), handler)
         handler.event_handler = self.on_event
         httpd.serve_forever()
-
-    def on_event(self, payload):
-        print(payload)
-
 
 if __name__ == "__main__":
     s = SimpleHTTPTrigger()
