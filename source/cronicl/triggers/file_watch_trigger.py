@@ -1,6 +1,7 @@
 from .base_trigger import BasePollingTrigger
 import datetime
 import pathlib
+from ..exceptions import MissingInformationError
 
 
 class FileWatchTrigger(BasePollingTrigger):
@@ -10,8 +11,14 @@ class FileWatchTrigger(BasePollingTrigger):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if 'filename' not in kwargs:
+            raise MissingInformationError("FileWatchTrigger requires 'filename' parameter")
         self.filename = kwargs['filename']
         self.last_filename = None
+        if self.label:
+            self.label = self.label + " - " + self.filename
+        else:
+            self.label = self.filename
 
     def nudge(self):
         # build filename, 

@@ -28,7 +28,7 @@ class PrintMessageOperation(cronicl.BaseOperation):
 
 def execute():
     dag = SayHelloOperation() > PrintMessageOperation()
-    flow = cronicl.Flow(dag)
+    flow = cronicl.Flow(dag=dag, label="test flow", sample_rate=0)
     flow.init()
     flow.execute(None)
 
