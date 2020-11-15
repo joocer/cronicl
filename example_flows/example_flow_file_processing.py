@@ -91,7 +91,13 @@ dag = nx.DiGraph()
 dag.add_node(
     "Data Validation",
     function=cronicl.operators.ValidatorOperation(
-        {"followers": "numeric", "username": "string"}
+        { 
+            "fields": [ 
+                { "name": "followers", "type": "numeric" }, 
+                { "name": "username", "type": "string" },
+                { "name": "user_verified", "type": "boolean" }
+            ] 
+        }
     ),
     concurrency=1,
 )
@@ -156,7 +162,7 @@ def main():
     with Timer("flow"):
 
         # create a filereader - the chunker is a performance tweak
-        file_reader = datasets.io.read_jsonl("small.jsonl", limit=10)
+        file_reader = datasets.io.read_jsonl("small.jsonl", limit=1000000)
         for chunk in datasets.io.generator_chunker(file_reader, 1000):
             # execute the flow for the chunk
             # execute can handle generators, lists or individual

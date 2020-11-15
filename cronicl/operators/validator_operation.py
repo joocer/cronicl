@@ -16,6 +16,7 @@ class ValidatorOperation(BaseOperation):
         self.invalid_records = 0
         super().__init__()
 
+
     def execute(self, message):
         valid = self.validator(message.payload)
         if not valid:

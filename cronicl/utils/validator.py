@@ -29,11 +29,14 @@ import datetime
 import json
 
 
+VALID_BOOLEAN_VALUES = ("true", "false", "on", "off", "yes", "no")
+
+
 def _is_string(value):
     return type(value).__name__ == "str"
 
 def _is_boolean(value):
-    return str(value).lower in ["true", "false", "on", "off", "yes", "no"]
+    return str(value).lower() in VALID_BOOLEAN_VALUES
 
 def _is_numeric(value):
     try:
@@ -69,6 +72,7 @@ VALIDATORS = {
     "date"      : _is_date,
     "boolean"   : _is_boolean,
     "null"      : _is_null,
+    "nullable"  : _is_null,
     "not_specified": _not_valid,
     "other"     : _other_validator,
 }
