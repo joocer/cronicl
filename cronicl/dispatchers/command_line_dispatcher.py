@@ -15,8 +15,8 @@ class CommandLineDispatcher(BaseDispatcher):
         super().__init__(*args, **kwargs)
 
     def on_event(self, payload):
-        result = subprocess.run(
+        result = subprocess.run(    # nosec
             *self.args, **self.kwargs, stdout=subprocess.PIPE
-        )  # nosec
+        )  
         result = result.stdout.decode("utf8").rstrip("\n")
         self.on_completion(result)

@@ -25,12 +25,8 @@ def test_serialization():
     deserialized = json_to_dict(serialized)
     reserialized = dict_to_json(deserialized)
 
-    assert (
-        TEST_DICT == deserialized
-    ), "JSON Deserialization does not create matching results"  # nosec
-    assert (
-        serialized == reserialized
-    ), "JSON Serialization does not creating matching results"  # nosec
+    assert (TEST_DICT == deserialized), "JSON Deserialization does not create matching results"  # nosec
+    assert (serialized == reserialized), "JSON Serialization does not creating matching results"  # nosec
 
 
 if __name__ == "__main__":
