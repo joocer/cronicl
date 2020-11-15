@@ -3,7 +3,7 @@ Validator Operation
 """
 
 from .base_operation import BaseOperation
-from ..utils import Validator
+from ..utils import Schema
 
 
 class ValidatorOperation(BaseOperation):
@@ -12,7 +12,7 @@ class ValidatorOperation(BaseOperation):
     """
 
     def __init__(self, schema):
-        self.validator = Validator(schema)
+        self.validator = Schema(schema)
         self.invalid_records = 0
         super().__init__()
 

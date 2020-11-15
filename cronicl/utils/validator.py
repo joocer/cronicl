@@ -1,77 +1,118 @@
+  
 """
-Basic Validator
+Schema Validation
+
+Tests a dictionary against a schema to test for conformity.
+
+Schema definition is similar to - but not the same as - avro schemas
 
 Supported Types:
-    - string
-    - numeric
-    - date
-    - boolean
-    - other (default, always passes)
+    - string - a character sequence
+    - numeric - a number
+    - int - alias for numeric
+    - date - an iso format date or time
+    - boolean - binary value (true/false, on/off, yes/no)
+    - other - not one of the above, but a required field
 
-Schema is a dictionary
+Example Schema:
 {
-    "field_name": "type",
-    "field_name": "type"
-}
-
-### new format
-{
-    "field_name": {
-        "type": "type",
-        "expression": "regex",
-        "range": (min, max)
-    }
+ "name": "Table Name",
+ "fields": [
+     {"name": "id", "type": "string"},
+     {"name": "country",  "type": ["string", "null"]},
+     {"name": "followers", "type": ["string", "null"]}
+ ]
 }
 """
+
 import datetime
+import json
 
 
-class Validator(object):
-    def __init__(self, schema):
-        self._validators = {
-            "string": self._validate_string,
-            "numeric": self._validate_numeric,
-            "date": self._validate_date,
-            "boolean": self._validate_boolean,
-            "other": self._null_validator,
-        }
-        self.validation_rules = {
-            key: self._validators.get(rule, self._null_validator)
-            for key, rule in schema.items()
-        }
+def _is_string(value):
+    return type(value).__name__ == "str"
 
-    def test(self, subject):
-        return all(
-            [rule(subject.get(key)) for key, rule in self.validation_rules.items()]
+def _is_boolean(value):
+    return str(value).lower in ["true", "false", "on", "off", "yes", "no"]
+
+def _is_numeric(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+    except TypeError:
+        return False
+
+def _is_date(value):
+    try:
+        if type(value).__name__ in ["datetime", "date", "time"]:
+            return True
+        datetime.datetime.fromisoformat(value)
+        return True
+    except ValueError:
+        return False
+
+def _is_null(value):
+    return value is None
+
+def _other_validator(value):
+    return True
+
+def _not_valid(value):
+    return False
+
+VALIDATORS = {
+    "string"    : _is_string,
+    "numeric"   : _is_numeric,
+    "int"       : _is_numeric,  # for compatibility only
+    "date"      : _is_date,
+    "boolean"   : _is_boolean,
+    "null"      : _is_null,
+    "not_specified": _not_valid,
+    "other"     : _other_validator,
+}
+
+def get_validators(type_descriptor):
+    if not type(type_descriptor).__name__ == 'list':
+        type_descriptor = [type_descriptor]
+    validators = []
+    for descriptor in type_descriptor:
+        validators.append(VALIDATORS[descriptor])
+    return validators
+
+def field_validator(value, validators):
+    return any(
+        [validator(value) for validator in validators]
         )
 
-    def __call__(self, subject):
-        """
-        Alias of .test()
-        """
-        return self.test(subject)
+class Schema():
 
-    def _validate_string(self, value):
-        return type(value).__name__ == "str"
+    def __init__(self, definition):
+        if type(definition).__name__ == 'str':
+            definition = json.loads(definition)
 
-    def _validate_boolean(self, value):
-        return str(value).lower in ["true", "false", "on", "off", "yes", "no", "0", "1"]
-
-    def _validate_numeric(self, value):
         try:
-            float(value)
-            return True
-        except ValueError:
-            return False
+            self._validators = {
+                item.get('name'): get_validators(item['type']) 
+                    for item 
+                    in definition.get('fields', [])
+            }
+        except KeyError:
+            raise ValueError("Invalid type specified in schema")
 
-    def _validate_date(self, value):
-        try:
-            if type(value).__name__ in ["datetime", "date", "time"]:
-                return True
-            datetime.datetime.fromisoformat(value)
-            return True
-        except ValueError:
-            return False
+    def validate(self, subject=None, raise_exception=False):
+        result = all(
+            [field_validator(subject.get(key), self._validators.get(key, [_other_validator])) 
+                for key, value 
+                in self._validators.items()]
+        )
+        if raise_exception and not result:
+            raise ValueError("Record does not conform to schema.")
+        return result
 
-    def _null_validator(self, type):
-        return True
+    def __call__(self, subject=None, raise_exception=False):
+        return self.validate(subject=subject, raise_exception=raise_exception)
+
+def validate(subject={}, schema={}):
+    return schema.validate(subject)

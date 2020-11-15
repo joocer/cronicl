@@ -15,9 +15,10 @@ import logging
 import random
 import inspect
 import hashlib
+import threading
 from ..models import Message
 from ..models.queue import get_queue
-from ..utils import ThreadLock, Signals
+from ..utils import Signals
 
 
 class BaseOperation(abc.ABC):
@@ -60,7 +61,7 @@ class BaseOperation(abc.ABC):
             self.first_seen = time.time_ns()
             logging.debug("first run of: {}".format(task_name))
         # deal with thread-unsafety
-        with ThreadLock():
+        with threading.Lock():
             self.input_record_count += 1
         traced = message.traced
         execution_start = time.time_ns()
@@ -69,14 +70,14 @@ class BaseOperation(abc.ABC):
         while tries > 0:
             # the main processing payload
             try:
-                with ThreadLock():
+                with threading.Lock():
                     results = self.execute(message)
                 break  # don't retry
             except KeyboardInterrupt:
                 raise  # don't count this as a processing error
             except:
                 # don't reraise, count and continue
-                with ThreadLock():
+                with threading.Lock():
                     self.errors += 1
                 if tries > 0:
                     time.sleep(self.retry_delay)
@@ -99,7 +100,7 @@ class BaseOperation(abc.ABC):
             )
         execution_duration = time.time_ns() - execution_start
         # deal with thread-unsafety
-        with ThreadLock():
+        with threading.Lock():
             self.execution_time += execution_duration
         response = []
         # if the result is None this will fail
@@ -120,7 +121,7 @@ class BaseOperation(abc.ABC):
                 result.initializer = message.initializer
                 result.operation_timings[self.operation_name] = execution_duration
                 # deal with thread-unsafety
-                with ThreadLock():
+                with threading.Lock():
                     self.output_record_count += 1
                 response.append(result)
         if len(response) == 0:
@@ -267,9 +268,7 @@ class BaseOperation(abc.ABC):
                 graph = nx.compose(point, graph)
                 graph.add_edge(
                     self.__class__.__name__,
-                    [node for node in point.nodes() if len(graph.in_edges(node)) == 0][
-                        0
-                    ],
+                    [node for node in point.nodes() if len(graph.in_edges(node)) == 0][0],
                 )
             else:
                 # otherwise add the node and edge and set the
