@@ -1,0 +1,21 @@
+name: ci_test_suite
+
+on: [push, pull_request]
+
+jobs:
+  ci_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check out
+        uses: actions/checkout@v2
+  
+      - name: set up
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8' 
+          
+      - name: install 
+        run:  pip install pytest
+
+      - name: run test
+        run: pytest 
